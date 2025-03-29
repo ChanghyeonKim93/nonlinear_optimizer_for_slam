@@ -15,7 +15,8 @@ class LossFunction {
 
 class ExponentialLossFunction : public LossFunction {
  public:
-  ExponentialLossFunction(const double c1, const double c2) : c1_{c1}, c2_{c2}, two_c1c2_{2.0 * c1_ * c2_} {
+  ExponentialLossFunction(const double c1, const double c2)
+      : c1_{c1}, c2_{c2}, two_c1c2_{2.0 * c1_ * c2_} {
     if (c1_ < 0.0) throw std::out_of_range("`c1_` should be positive number.");
     if (c2_ < 0.0) throw std::out_of_range("`c2_` should be positive number.");
   }
@@ -23,7 +24,8 @@ class ExponentialLossFunction : public LossFunction {
   void Evaluate(const double squared_residual, double output[2]) final {
     const double exp_term = std::exp(-c2_ * squared_residual);
     output[0] = c1_ - c1_ * exp_term;
-    output[1] = two_c1c2_ * output[0];
+    output[1] = two_c1c2_ * exp_term;
+    output[2] = -2.0 * c2_ * output[1];
   }
 
  private:
@@ -34,8 +36,10 @@ class ExponentialLossFunction : public LossFunction {
 
 class HuberLossFunction : public LossFunction {
  public:
-  HuberLossFunction(const double threshold) : threshold_{threshold}, squared_threshold_{threshold_ * threshold_} {
-    if (threshold_ <= 0.0) throw std::out_of_range("threshold value should be larger than zero.");
+  HuberLossFunction(const double threshold)
+      : threshold_{threshold}, squared_threshold_{threshold_ * threshold_} {
+    if (threshold_ <= 0.0)
+      throw std::out_of_range("threshold value should be larger than zero.");
   }
 
   void Evaluate(const double squared_residual, double output[2]) final {
