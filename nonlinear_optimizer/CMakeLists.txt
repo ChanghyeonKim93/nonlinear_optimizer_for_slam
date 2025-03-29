@@ -1,0 +1,1 @@
+add_subdirectory(mahalanobis_distance_minimizer)
