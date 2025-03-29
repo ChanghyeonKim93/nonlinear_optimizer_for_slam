@@ -11,6 +11,7 @@
 
 #include "nonlinear_optimizer/mahalanobis_distance_minimizer/ceres_cost_functor.h"
 #include "nonlinear_optimizer/mahalanobis_distance_minimizer/mahalanobis_distance_minimizer.h"
+#include "nonlinear_optimizer/mahalanobis_distance_minimizer/mahalanobis_distance_minimizer_analytic.h"
 #include "nonlinear_optimizer/mahalanobis_distance_minimizer/mahalanobis_distance_minimizer_ceres.h"
 #include "nonlinear_optimizer/time_checker.h"
 #include "nonlinear_optimizer/types.h"
@@ -41,6 +42,9 @@ Pose OptimizePoseSimplified(const NdtMap& ndt_map,
 Pose OptimizePoseRedundantEach(const NdtMap& ndt_map,
                                const std::vector<Vec3>& local_points,
                                const Pose& initial_pose);
+Pose OptimizePoseAnalytic(const NdtMap& ndt_map,
+                          const std::vector<Vec3>& local_points,
+                          const Pose& initial_pose);
 
 }  // namespace mahalanobis_distance_minimizer
 }  // namespace nonlinear_optimizer
@@ -48,7 +52,7 @@ Pose OptimizePoseRedundantEach(const NdtMap& ndt_map,
 using namespace nonlinear_optimizer;
 using namespace nonlinear_optimizer::mahalanobis_distance_minimizer;
 
-int main(int argc, char** argv) {
+int main(int, char**) {
   constexpr double kVoxelResolution{1.0};
   constexpr double kFilterVoxelResolution{0.1};
 
@@ -74,27 +78,39 @@ int main(int argc, char** argv) {
   // Optimize pose
   Pose initial_pose{Pose::Identity()};
   std::cerr << "Start OptimizedPoseOriginal" << std::endl;
-  const auto optimized_pose =
+  const auto opt_pose_ceres_redundant =
       OptimizePoseOriginal(ndt_map, local_points, initial_pose);
   std::cerr << "Start OptimizePoseSimplified" << std::endl;
-  const auto optimized_pose2 =
+  const auto opt_pose_ceres_simplified =
       OptimizePoseSimplified(ndt_map, local_points, initial_pose);
   std::cerr << "Start OptimizePoseRedundantEach" << std::endl;
   const auto optimized_pose3 =
       OptimizePoseRedundantEach(ndt_map, local_points, initial_pose);
+  std::cerr << "Start OptimizePoseAnalytic" << std::endl;
+  const auto opt_pose_analytic =
+      OptimizePoseAnalytic(ndt_map, local_points, initial_pose);
 
-  std::cerr << "Optimized pose: " << optimized_pose.translation().transpose()
-            << " "
-            << Eigen::Quaterniond(optimized_pose.linear()).coeffs().transpose()
+  std::cerr << "Pose (ceres redundant): "
+            << opt_pose_ceres_redundant.translation().transpose() << " "
+            << Eigen::Quaterniond(opt_pose_ceres_redundant.linear())
+                   .coeffs()
+                   .transpose()
             << std::endl;
-  std::cerr << "Optimized pose2: " << optimized_pose2.translation().transpose()
-            << " "
-            << Eigen::Quaterniond(optimized_pose2.linear()).coeffs().transpose()
+  std::cerr << "Pose (ceres simplified): "
+            << opt_pose_ceres_simplified.translation().transpose() << " "
+            << Eigen::Quaterniond(opt_pose_ceres_simplified.linear())
+                   .coeffs()
+                   .transpose()
             << std::endl;
-  std::cerr << "Optimized pose3: " << optimized_pose3.translation().transpose()
-            << " "
+  std::cerr << "Pose (ceres redundant, each): "
+            << optimized_pose3.translation().transpose() << " "
             << Eigen::Quaterniond(optimized_pose3.linear()).coeffs().transpose()
             << std::endl;
+  std::cerr
+      << "Pose (analytic): " << opt_pose_analytic.translation().transpose()
+      << " "
+      << Eigen::Quaterniond(opt_pose_analytic.linear()).coeffs().transpose()
+      << std::endl;
   std::cerr << "True pose: " << true_pose.translation().transpose() << " "
             << Eigen::Quaterniond(true_pose.linear()).coeffs().transpose()
             << std::endl;
@@ -394,6 +410,40 @@ Pose OptimizePoseSimplified(const NdtMap& ndt_map,
             nonlinear_optimizer::mahalanobis_distance_minimizer::
                 MahalanobisDistanceMinimizerCeres>();
 
+    optim->Solve(correspondences, &optimized_pose);
+
+    Pose pose_diff = optimized_pose.inverse() * last_optimized_pose;
+    if (pose_diff.translation().norm() < 1e-5 &&
+        Orientation(pose_diff.linear()).vec().norm() < 1e-5) {
+      break;
+    }
+    last_optimized_pose = optimized_pose;
+  }
+  std::cerr << "outer_iter: " << outer_iter << std::endl;
+
+  return optimized_pose;
+}
+
+Pose OptimizePoseAnalytic(const NdtMap& ndt_map,
+                          const std::vector<Vec3>& local_points,
+                          const Pose& initial_pose) {
+  CHECK_EXEC_TIME_FROM_HERE
+
+  Pose optimized_pose = initial_pose;
+  Pose last_optimized_pose = optimized_pose;
+  int outer_iter = 0;
+  for (; outer_iter < 10; ++outer_iter) {
+    const auto correspondences =
+        MatchPointCloud(ndt_map, local_points, optimized_pose);
+
+    std::unique_ptr<nonlinear_optimizer::mahalanobis_distance_minimizer::
+                        MahalanobisDistanceMinimizer>
+        optim = std::make_unique<
+            nonlinear_optimizer::mahalanobis_distance_minimizer::
+                MahalanobisDistanceMinimizerAnalytic>();
+    optim->SetLossFunction(
+        std::make_shared<nonlinear_optimizer::ExponentialLossFunction>(1.0,
+                                                                       1.0));
     optim->Solve(correspondences, &optimized_pose);
 
     Pose pose_diff = optimized_pose.inverse() * last_optimized_pose;

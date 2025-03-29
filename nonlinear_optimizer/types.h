@@ -16,6 +16,9 @@ using Mat4x4 = Eigen::Matrix<double, 4, 4>;
 using Mat5x5 = Eigen::Matrix<double, 5, 5>;
 using Mat6x6 = Eigen::Matrix<double, 6, 6>;
 
+using Mat3x6 = Eigen::Matrix<double, 3, 6>;
+using Mat6x3 = Eigen::Matrix<double, 6, 3>;
+
 using Orientation = Eigen::Quaterniond;
 using Pose = Eigen::Isometry3d;
 

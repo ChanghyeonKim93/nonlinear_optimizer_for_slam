@@ -22,7 +22,7 @@ class MahalanobisDistanceMinimizer {
   virtual bool Solve(const std::vector<Correspondence>& correspondences,
                      Pose* pose) = 0;
 
- private:
+ protected:
   std::shared_ptr<LossFunction> loss_function_{nullptr};
 };
 
