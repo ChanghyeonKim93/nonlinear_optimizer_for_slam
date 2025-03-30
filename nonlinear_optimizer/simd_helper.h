@@ -3,6 +3,8 @@
 
 #include "immintrin.h"
 
+#include "Eigen/Dense"
+
 #define _SIMD_DATA_STEP_DOUBLE 4
 #define _SIMD_DATA_STEP_FLOAT 8
 #define _SIMD_FLOAT __m256
@@ -54,93 +56,118 @@ inline void custom_aligned_free(void* ptr) {
   if (ptr) std::free(*(reinterpret_cast<void**>(ptr) - 1));
 }
 
-class SimdDataFloat {
+class SimdFloat {
  public:
-  SimdDataFloat() { data_ = _mm256_setzero_ps(); }
-  explicit SimdDataFloat(const float scalar) { data_ = _mm256_set1_ps(scalar); }
-  explicit SimdDataFloat(const float n1, const float n2, const float n3,
-                         const float n4, const float n5, const float n6,
-                         const float n7, const float n8) {
+  SimdFloat() { data_ = _mm256_setzero_ps(); }
+  explicit SimdFloat(const float scalar) { data_ = _mm256_set1_ps(scalar); }
+  explicit SimdFloat(const float n1, const float n2, const float n3,
+                     const float n4, const float n5, const float n6,
+                     const float n7, const float n8) {
     data_ = _mm256_set_ps(n8, n7, n6, n5, n4, n3, n2, n1);
   }
-  explicit SimdDataFloat(const float* rhs) { data_ = _mm256_load_ps(rhs); }
-  SimdDataFloat(const __m256& rhs) { data_ = rhs; }
-  SimdDataFloat(const SimdDataFloat& rhs) { data_ = rhs.data_; }
-  SimdDataFloat operator+(const float rhs) {
-    return SimdDataFloat(_mm256_add_ps(data_, _mm256_set1_ps(rhs)));
+  explicit SimdFloat(const float* rhs) { data_ = _mm256_load_ps(rhs); }
+  SimdFloat(const __m256& rhs) { data_ = rhs; }
+  SimdFloat(const SimdFloat& rhs) { data_ = rhs.data_; }
+  SimdFloat operator=(const SimdFloat& rhs) { return SimdFloat(rhs.data_); }
+  SimdFloat operator+(const float rhs) const {
+    return SimdFloat(_mm256_add_ps(data_, _mm256_set1_ps(rhs)));
   }
-  SimdDataFloat operator-(const float rhs) {
-    return SimdDataFloat(_mm256_sub_ps(data_, _mm256_set1_ps(rhs)));
+  SimdFloat operator-(const float rhs) const {
+    return SimdFloat(_mm256_sub_ps(data_, _mm256_set1_ps(rhs)));
   }
-  SimdDataFloat operator*(const float rhs) {
-    return SimdDataFloat(_mm256_mul_ps(data_, _mm256_set1_ps(rhs)));
+  SimdFloat operator*(const float rhs) const {
+    return SimdFloat(_mm256_mul_ps(data_, _mm256_set1_ps(rhs)));
   }
-  SimdDataFloat operator/(const float rhs) {
-    return SimdDataFloat(_mm256_div_ps(data_, _mm256_set1_ps(rhs)));
+  SimdFloat operator/(const float rhs) const {
+    return SimdFloat(_mm256_div_ps(data_, _mm256_set1_ps(rhs)));
   }
-  SimdDataFloat operator+(const SimdDataFloat& rhs) {
-    return SimdDataFloat(_mm256_add_ps(data_, rhs.data_));
+  SimdFloat operator+(const SimdFloat& rhs) const {
+    return SimdFloat(_mm256_add_ps(data_, rhs.data_));
   }
-  SimdDataFloat operator-(const SimdDataFloat& rhs) {
-    return SimdDataFloat(_mm256_sub_ps(data_, rhs.data_));
+  SimdFloat operator-(const SimdFloat& rhs) const {
+    return SimdFloat(_mm256_sub_ps(data_, rhs.data_));
   }
-  SimdDataFloat operator*(const SimdDataFloat& rhs) {
-    return SimdDataFloat(_mm256_mul_ps(data_, rhs.data_));
+  SimdFloat operator*(const SimdFloat& rhs) const {
+    return SimdFloat(_mm256_mul_ps(data_, rhs.data_));
   }
-  SimdDataFloat operator/(const SimdDataFloat& rhs) {
-    return SimdDataFloat(_mm256_div_ps(data_, rhs.data_));
+  SimdFloat operator/(const SimdFloat& rhs) const {
+    return SimdFloat(_mm256_div_ps(data_, rhs.data_));
   }
-  SimdDataFloat& operator=(const SimdDataFloat& rhs) {
-    data_ = rhs.data_;
+
+  SimdFloat& operator+=(const SimdFloat& rhs) {
+    data_ = _mm256_add_ps(data_, rhs.data_);
     return *this;
   }
+  SimdFloat& operator-=(const SimdFloat& rhs) {
+    data_ = _mm256_sub_ps(data_, rhs.data_);
+    return *this;
+  }
+  SimdFloat& operator*=(const SimdFloat& rhs) {
+    data_ = _mm256_mul_ps(data_, rhs.data_);
+    return *this;
+  }
+
   void StoreData(float* data) const { _mm256_store_ps(data, data_); }
+
+  static size_t GetDataStep() { return _SIMD_DATA_STEP_FLOAT; }
 
  private:
   __m256 data_;
 };
 
-class SimdDataDouble {
+class SimdDouble {
  public:
-  SimdDataDouble() { data_ = _mm256_setzero_pd(); }
-  explicit SimdDataDouble(const double scalar) {
-    data_ = _mm256_set1_pd(scalar);
-  }
-  explicit SimdDataDouble(const double n1, const double n2, const double n3,
-                          const double n4) {
+  SimdDouble() { data_ = _mm256_setzero_pd(); }
+  explicit SimdDouble(const double scalar) { data_ = _mm256_set1_pd(scalar); }
+  explicit SimdDouble(const double n1, const double n2, const double n3,
+                      const double n4) {
     data_ = _mm256_set_pd(n4, n3, n2, n1);
   }
-  explicit SimdDataDouble(const double* rhs) { data_ = _mm256_load_pd(rhs); }
-  SimdDataDouble(const __m256d& rhs) { data_ = rhs; }
-  SimdDataDouble(const SimdDataDouble& rhs) { data_ = rhs.data_; }
-  SimdDataDouble operator=(const SimdDataDouble& rhs) {
-    return SimdDataDouble(rhs.data_);
+  explicit SimdDouble(const double* rhs) { data_ = _mm256_load_pd(rhs); }
+  SimdDouble(const __m256d& rhs) { data_ = rhs; }
+  SimdDouble(const SimdDouble& rhs) { data_ = rhs.data_; }
+  SimdDouble operator=(const SimdDouble& rhs) { return SimdDouble(rhs.data_); }
+  SimdDouble operator+(const double rhs) const {
+    return SimdDouble(_mm256_add_pd(data_, _mm256_set1_pd(rhs)));
   }
-  SimdDataDouble operator+(const double rhs) {
-    return SimdDataDouble(_mm256_add_pd(data_, _mm256_set1_pd(rhs)));
+  SimdDouble operator-(const double rhs) const {
+    return SimdDouble(_mm256_sub_pd(data_, _mm256_set1_pd(rhs)));
   }
-  SimdDataDouble operator-(const double rhs) {
-    return SimdDataDouble(_mm256_sub_pd(data_, _mm256_set1_pd(rhs)));
+  SimdDouble operator*(const double rhs) const {
+    return SimdDouble(_mm256_mul_pd(data_, _mm256_set1_pd(rhs)));
   }
-  SimdDataDouble operator*(const double rhs) {
-    return SimdDataDouble(_mm256_mul_pd(data_, _mm256_set1_pd(rhs)));
+  SimdDouble operator/(const double rhs) const {
+    return SimdDouble(_mm256_div_pd(data_, _mm256_set1_pd(rhs)));
   }
-  SimdDataDouble operator/(const double rhs) {
-    return SimdDataDouble(_mm256_div_pd(data_, _mm256_set1_pd(rhs)));
+  SimdDouble operator+(const SimdDouble& rhs) const {
+    return SimdDouble(_mm256_add_pd(data_, rhs.data_));
   }
-  SimdDataDouble operator+(const SimdDataDouble& rhs) {
-    return SimdDataDouble(_mm256_add_pd(data_, rhs.data_));
+  SimdDouble operator-(const SimdDouble& rhs) const {
+    return SimdDouble(_mm256_sub_pd(data_, rhs.data_));
   }
-  SimdDataDouble operator-(const SimdDataDouble& rhs) {
-    return SimdDataDouble(_mm256_sub_pd(data_, rhs.data_));
+  SimdDouble operator*(const SimdDouble& rhs) const {
+    return SimdDouble(_mm256_mul_pd(data_, rhs.data_));
   }
-  SimdDataDouble operator*(const SimdDataDouble& rhs) {
-    return SimdDataDouble(_mm256_mul_pd(data_, rhs.data_));
+  SimdDouble operator/(const SimdDouble& rhs) const {
+    return SimdDouble(_mm256_div_pd(data_, rhs.data_));
   }
-  SimdDataDouble operator/(const SimdDataDouble& rhs) {
-    return SimdDataDouble(_mm256_div_pd(data_, rhs.data_));
+
+  SimdDouble& operator+=(const SimdDouble& rhs) {
+    data_ = _mm256_add_pd(data_, rhs.data_);
+    return *this;
   }
+  SimdDouble& operator-=(const SimdDouble& rhs) {
+    data_ = _mm256_sub_pd(data_, rhs.data_);
+    return *this;
+  }
+  SimdDouble& operator*=(const SimdDouble& rhs) {
+    data_ = _mm256_mul_pd(data_, rhs.data_);
+    return *this;
+  }
+
   void StoreData(double* data) const { _mm256_store_pd(data, data_); }
+
+  static size_t GetDataStep() { return _SIMD_DATA_STEP_DOUBLE; }
 
  private:
   __m256d data_;

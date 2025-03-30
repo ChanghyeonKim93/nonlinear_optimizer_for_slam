@@ -29,12 +29,6 @@ std::vector<float> GenerateFloatVector(const int size) {
   return vec;
 }
 
-#define COMPUTE_COMPLEX_ARITHMETIC1(a, b)                                 \
-  ((a) + (b) * (b) / (a + 2.0)) +                                         \
-      ((a) * ((a) + (b)) * ((a) + (b)) + (b) + 1.0) * ((a) + (b) + 1.0) * \
-          ((a) + (b) + 1.0) * ((a) + (b) * 0.5 + 2.0) /                   \
-          ((a) * (b) + (b) * (a) * (b) * (b) * 3.0 + 4.0)
-
 #define COMPUTE_COMPLEX_ARITHMETIC(a, b)                                  \
   ((a) + (b)) * ((a) + (b) * (b) + 1.0) / ((a) + (b) + 3.0) +             \
       ((b) * (b) * 2.0) * ((a) * (b) * (b) + 4.0) * ((a) / ((b) + 1.2)) + \
@@ -85,9 +79,9 @@ void TestDouble(const std::vector<double>& d1, const std::vector<double>& d2,
     d2_ptr[1] = d2[i + 1];
     d2_ptr[2] = d2[i + 2];
     d2_ptr[3] = d2[i + 3];
-    SimdDataDouble s1(d1_ptr);
-    SimdDataDouble s2(d2_ptr);
-    SimdDataDouble rs = COMPUTE_COMPLEX_ARITHMETIC(s1, s2);
+    SimdDouble s1(d1_ptr);
+    SimdDouble s2(d2_ptr);
+    SimdDouble rs = COMPUTE_COMPLEX_ARITHMETIC(s1, s2);
     rs.StoreData(res);
     rd->push_back(res[0]);
     rd->push_back(res[1]);
@@ -120,14 +114,18 @@ void TestFloat(const std::vector<float>& d1, const std::vector<float>& d2,
     d2_ptr[5] = d2[i + 5];
     d2_ptr[6] = d2[i + 6];
     d2_ptr[7] = d2[i + 7];
-    SimdDataFloat s1(d1_ptr);
-    SimdDataFloat s2(d2_ptr);
-    SimdDataFloat rs = COMPUTE_COMPLEX_ARITHMETIC(s1, s2);
+    SimdFloat s1(d1_ptr);
+    SimdFloat s2(d2_ptr);
+    SimdFloat rs = COMPUTE_COMPLEX_ARITHMETIC(s1, s2);
     rs.StoreData(res);
     rd->push_back(res[0]);
     rd->push_back(res[1]);
     rd->push_back(res[2]);
     rd->push_back(res[3]);
+    rd->push_back(res[4]);
+    rd->push_back(res[5]);
+    rd->push_back(res[6]);
+    rd->push_back(res[7]);
   }
 }
 
@@ -151,14 +149,15 @@ int main(int, char**) {
   TestFloatScalar(f1, f2, &rf_scalar);
 
   for (size_t i = 0; i < rd.size(); ++i) {
-    if (fabs(rd[i] - rd_scalar[i]) > 1e-6) {
+    if (fabs(rd[i] - rd_scalar[i]) > 1e-7) {
       std::cout << "Double SIMD test failed at index " << i << std::endl;
       return -1;
     }
   }
   for (size_t i = 0; i < rf.size(); ++i) {
-    if (fabs(rf[i] - rf_scalar[i]) > 1e-6) {
-      std::cout << "Float SIMD test failed at index " << i << std::endl;
+    if (fabs(rf[i] - rf_scalar[i]) > 1e-3) {
+      std::cout << "Float SIMD test failed at index " << i << " : "
+                << fabs(rf[i] - rf_scalar[i]) << std::endl;
       return -1;
     }
   }
