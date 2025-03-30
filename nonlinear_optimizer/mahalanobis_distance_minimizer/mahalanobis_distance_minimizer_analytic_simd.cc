@@ -16,8 +16,7 @@ MahalanobisDistanceMinimizerAnalyticSIMD::
 bool MahalanobisDistanceMinimizerAnalyticSIMD::Solve(
     const std::vector<Correspondence>& correspondences, Pose* pose) {
   auto mult_mat_by_mat = [](const SimdDouble lhs[3][3],
-                            const SimdDouble rhs[3][3]) {
-    SimdDouble res[3][3];
+                            const SimdDouble rhs[3][3], SimdDouble res[3][3]) {
     res[0][0] =
         lhs[0][0] * rhs[0][0] + lhs[0][1] * rhs[1][0] + lhs[0][2] * rhs[2][0];
     res[0][1] =
@@ -38,29 +37,24 @@ bool MahalanobisDistanceMinimizerAnalyticSIMD::Solve(
         lhs[2][0] * rhs[0][1] + lhs[2][1] * rhs[1][1] + lhs[2][2] * rhs[2][1];
     res[2][2] =
         lhs[2][0] * rhs[0][2] + lhs[2][1] * rhs[1][2] + lhs[2][2] * rhs[2][2];
-    return res;
   };
-  auto mult_mat_by_vec = [](const SimdDouble lhs[3][3],
-                            const SimdDouble rhs[3]) {
-    SimdDouble res[3];
+  auto mult_mat_by_vec = [](const SimdDouble lhs[3][3], const SimdDouble rhs[3],
+                            SimdDouble res[3]) {
     res[0] = lhs[0][0] * rhs[0] + lhs[0][1] * rhs[1] + lhs[0][2] * rhs[2];
     res[1] = lhs[1][0] * rhs[0] + lhs[1][1] * rhs[1] + lhs[1][2] * rhs[2];
     res[2] = lhs[2][0] * rhs[0] + lhs[2][1] * rhs[1] + lhs[2][2] * rhs[2];
-    return res;
   };
-  auto add_vec_to_vec = [](const SimdDouble lhs[3], const SimdDouble rhs[3]) {
-    SimdDouble res[3];
+  auto add_vec_to_vec = [](const SimdDouble lhs[3], const SimdDouble rhs[3],
+                           SimdDouble res[3]) {
     res[0] = lhs[0] + rhs[0];
     res[1] = lhs[1] + rhs[1];
     res[2] = lhs[2] + rhs[2];
-    return res;
   };
-  auto sub_vec_to_vec = [](const SimdDouble lhs[3], const SimdDouble rhs[3]) {
-    SimdDouble res[3];
+  auto sub_vec_to_vec = [](const SimdDouble lhs[3], const SimdDouble rhs[3],
+                           SimdDouble res[3]) {
     res[0] = lhs[0] - rhs[0];
     res[1] = lhs[1] - rhs[1];
     res[2] = lhs[2] - rhs[2];
-    return res;
   };
 
   constexpr int max_iteration = 30;
@@ -164,9 +158,9 @@ bool MahalanobisDistanceMinimizerAnalyticSIMD::Solve(
       minus_R_skewp__[1][0] =  R__[1][2] * p__[1] - R__[1][1] * p__[2];
       minus_R_skewp__[2][0] =  R__[2][2] * p__[1] - R__[2][1] * p__[2];
 
-      minus_R_skewp__[0][1] =  R__[0][0] * p__[2] - R__[0][2] * p__[2];
-      minus_R_skewp__[1][1] =  R__[1][0] * p__[2] - R__[1][2] * p__[2];
-      minus_R_skewp__[2][1] =  R__[2][0] * p__[2] - R__[2][2] * p__[2];
+      minus_R_skewp__[0][1] =  R__[0][0] * p__[2] - R__[0][2] * p__[0];
+      minus_R_skewp__[1][1] =  R__[1][0] * p__[2] - R__[1][2] * p__[0];
+      minus_R_skewp__[2][1] =  R__[2][0] * p__[2] - R__[2][2] * p__[0];
       
       minus_R_skewp__[0][2] =  R__[0][1] * p__[0] - R__[0][0] * p__[1];
       minus_R_skewp__[1][2] =  R__[1][1] * p__[0] - R__[1][0] * p__[1];
@@ -189,24 +183,24 @@ bool MahalanobisDistanceMinimizerAnalyticSIMD::Solve(
       SimdDouble loss__(sq_r__);
       SimdDouble weight__(1.0);
       if (loss_function_ != nullptr) {
-        double sq_r[4];
-        sq_r__.StoreData(sq_r);
-        double loss[4];
-        double weight[4];
+        double sq_r_buf[4];
+        sq_r__.StoreData(sq_r_buf);
+        double loss_buf[4];
+        double weight_buf[4];
         for (int k = 0; k < 4; ++k) {
           double loss_output[3] = {0.0, 0.0, 0.0};
-          loss_function_->Evaluate(sq_r[k], loss_output);
-          loss[k] = loss_output[0];
-          weight[k] = loss_output[1];
+          loss_function_->Evaluate(sq_r_buf[k], loss_output);
+          loss_buf[k] = loss_output[0];
+          weight_buf[k] = loss_output[1];
         }
-        loss__ = SimdDouble(loss);
-        weight__ = SimdDouble(weight);
+        loss__ = SimdDouble(loss_buf);
+        weight__ = SimdDouble(weight_buf);
       }
 
       // g(i) += (J(0,i)*r(0) + J(1,i)*r(1) + J(2,i)*r(2))
       for (int k = 0; k < 6; ++k)
         gradient__[k] += (weight__ * (J__[0][k] * r__[0] + J__[1][k] * r__[1] +
-                                      J__[2][k] * r__[0]));
+                                      J__[2][k] * r__[2]));
 
       // H(i,j) = sum_{k} w * J(k,i) * J(k,j)
       // H(i,j) += (J(0,i)*J(0,j) + J(1,i)*J(1,j) + J(2,i)*J(2,j));
@@ -224,17 +218,17 @@ bool MahalanobisDistanceMinimizerAnalyticSIMD::Solve(
       cost__ += loss__;
     }
     double buf[4];
+    cost__.StoreData(buf);
+    cost += (buf[0] + buf[1] + buf[2] + buf[3]);
+
     Mat6x6 hessian{Mat6x6::Zero()};
     Vec6 gradient{Vec6::Zero()};
-    for (int i = 0; i < 6; ++i) {
-      cost__.StoreData(buf);
-      cost += (buf[0] + buf[1] + buf[2] + buf[3]);
-
-      gradient__[i].StoreData(buf);
-      gradient(i) += (buf[0] + buf[1] + buf[2] + buf[3]);
-      for (int j = i; j < 6; ++j) {
-        hessian__[i][j].StoreData(buf);
-        hessian(i, j) += (buf[0] + buf[1] + buf[2] + buf[3]);
+    for (int ii = 0; ii < 6; ++ii) {
+      gradient__[ii].StoreData(buf);
+      gradient(ii) += (buf[0] + buf[1] + buf[2] + buf[3]);
+      for (int jj = ii; jj < 6; ++jj) {
+        hessian__[ii][jj].StoreData(buf);
+        hessian(ii, jj) += (buf[0] + buf[1] + buf[2] + buf[3]);
       }
     }
     // std::cerr << "gradient: " << gradient.transpose() << std::endl;
@@ -272,6 +266,7 @@ bool MahalanobisDistanceMinimizerAnalyticSIMD::Solve(
     lambda = std::clamp(lambda, min_lambda, max_lambda);
     previous_cost = cost;
   }
+  std::cerr << "COST: " << previous_cost << std::endl;
 
   pose->translation() = optimized_translation;
   pose->linear() = optimized_orientation.toRotationMatrix();

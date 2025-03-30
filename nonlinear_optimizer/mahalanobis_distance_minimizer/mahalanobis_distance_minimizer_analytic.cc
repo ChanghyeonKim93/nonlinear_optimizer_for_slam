@@ -95,6 +95,8 @@ bool MahalanobisDistanceMinimizerAnalytic::Solve(
     previous_cost = cost;
   }
 
+  std::cerr << "COST: " << previous_cost << std::endl;
+
   pose->translation() = optimized_translation;
   pose->linear() = optimized_orientation.toRotationMatrix();
 
