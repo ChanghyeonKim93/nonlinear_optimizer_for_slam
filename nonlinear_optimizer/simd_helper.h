@@ -68,7 +68,10 @@ class SimdFloat {
   explicit SimdFloat(const float* rhs) { data_ = _mm256_load_ps(rhs); }
   SimdFloat(const __m256& rhs) { data_ = rhs; }
   SimdFloat(const SimdFloat& rhs) { data_ = rhs.data_; }
-  SimdFloat operator=(const SimdFloat& rhs) { return SimdFloat(rhs.data_); }
+  SimdFloat& operator=(const SimdFloat& rhs) {
+    data_ = rhs.data_;
+    return *this;
+  }
   SimdFloat operator+(const float rhs) const {
     return SimdFloat(_mm256_add_ps(data_, _mm256_set1_ps(rhs)));
   }
@@ -126,7 +129,10 @@ class SimdDouble {
   explicit SimdDouble(const double* rhs) { data_ = _mm256_load_pd(rhs); }
   SimdDouble(const __m256d& rhs) { data_ = rhs; }
   SimdDouble(const SimdDouble& rhs) { data_ = rhs.data_; }
-  SimdDouble operator=(const SimdDouble& rhs) { return SimdDouble(rhs.data_); }
+  SimdDouble& operator=(const SimdDouble& rhs) {
+    data_ = rhs.data_;
+    return *this;
+  }
   SimdDouble operator+(const double rhs) const {
     return SimdDouble(_mm256_add_pd(data_, _mm256_set1_pd(rhs)));
   }
