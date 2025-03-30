@@ -47,12 +47,12 @@ inline void* custom_aligned_malloc(std::size_t size) {
                               ALIGN_BYTES);
   *(reinterpret_cast<void**>(aligned) - 1) = original;
   return aligned;
-};
+}
 
 /** \internal Frees memory allocated with handmade_aligned_malloc */
 inline void custom_aligned_free(void* ptr) {
   if (ptr) std::free(*(reinterpret_cast<void**>(ptr) - 1));
-};
+}
 
 class SimdDataFloat {
  public:

@@ -29,7 +29,7 @@ std::vector<float> GenerateFloatVector(const int size) {
   return vec;
 }
 
-#define COMPUTE_COMPLEX_ARITHMETIC(a, b)                                  \
+#define COMPUTE_COMPLEX_ARITHMETIC1(a, b)                                 \
   ((a) + (b) * (b) / (a + 2.0)) +                                         \
       ((a) * ((a) + (b)) * ((a) + (b)) + (b) + 1.0) * ((a) + (b) + 1.0) * \
           ((a) + (b) + 1.0) * ((a) + (b) * 0.5 + 2.0) /                   \
@@ -150,13 +150,13 @@ int main(int, char**) {
   std::vector<float> rf_scalar;
   TestFloatScalar(f1, f2, &rf_scalar);
 
-  for (int i = 0; i < rd.size(); ++i) {
+  for (size_t i = 0; i < rd.size(); ++i) {
     if (fabs(rd[i] - rd_scalar[i]) > 1e-6) {
       std::cout << "Double SIMD test failed at index " << i << std::endl;
       return -1;
     }
   }
-  for (int i = 0; i < rf.size(); ++i) {
+  for (size_t i = 0; i < rf.size(); ++i) {
     if (fabs(rf[i] - rf_scalar[i]) > 1e-6) {
       std::cout << "Float SIMD test failed at index " << i << std::endl;
       return -1;

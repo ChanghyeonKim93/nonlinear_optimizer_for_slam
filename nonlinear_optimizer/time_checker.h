@@ -54,8 +54,8 @@ class TimeCheckerManager {
 
 }  // namespace nonlinear_optimizer
 
-// #define log(fmt, ...)                                                 \
-//   printf("[%s: %d][%s] " fmt "\t\t\t (%s, %s)\n", __FILE__, __LINE__, \
+// #define log(fmt, ...)
+//   printf("[%s: %d][%s] " fmt "\t\t\t (%s, %s)\n", __FILE__, __LINE__,
 //          __func__, __DATE__, __TIME__);
 
 #endif  // NONLINEAR_OPTIMIZER_TIME_CHECKER_H_
