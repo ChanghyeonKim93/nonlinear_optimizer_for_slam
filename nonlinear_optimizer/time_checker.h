@@ -9,7 +9,8 @@
 
 namespace nonlinear_optimizer {
 
-#define CHECK_EXEC_TIME_FROM_HERE TimeChecker time_checker(__FILE__, __func__);
+#define CHECK_EXEC_TIME_FROM_HERE \
+  nonlinear_optimizer::TimeChecker time_checker(__FILE__, __func__);
 
 class TimeChecker {
  public:

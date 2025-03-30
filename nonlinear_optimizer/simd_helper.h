@@ -1,40 +1,30 @@
 #ifndef NONLINEAR_OPTIMIZER_SIMD_HELPER_H_
 #define NONLINEAR_OPTIMIZER_SIMD_HELPER_H_
 
-#include <iostream>
-#include <vector>
-
-#include "Eigen/Dense"
-
 #include "immintrin.h"
 
-// #define USE_SSE
-#define USE_AVX
+#define _SIMD_DATA_STEP_DOUBLE 4
+#define _SIMD_DATA_STEP_FLOAT 8
+#define _SIMD_FLOAT __m256
+#define _SIMD_DOUBLE __m256d
+#define _SIMD_SET1 _mm256_set1_ps
+#define _SIMD_LOAD _mm256_load_ps
+#define _SIMD_RCP _mm256_rcp_ps
+#define _SIMD_DIV _mm256_div_ps
+#define _SIMD_MUL _mm256_mul_ps
+#define _SIMD_ADD _mm256_add_ps
+#define _SIMD_SUB _mm256_sub_ps
+#define _SIMD_STORE _mm256_store_ps
+#define _SIMD_SET1_D _mm256_set1_pd
+#define _SIMD_LOAD_D _mm256_load_pd
+#define _SIMD_RCP_D _mm256_div_pd
+#define _SIMD_MUL_D _mm256_mul_pd
+#define _SIMD_ADD_D _mm256_add_pd
+#define _SIMD_SUB_D _mm256_sub_pd
+#define _SIMD_STORE_D _mm256_store_pd
 
-#if defined(USE_SSE)
-#define _SIMD_BYTE_STEP 4
-#define _SIMD_TYPE __m128
-#define _SIMD_SET1_PS _mm_set1_ps
-#define _SIMD_LOAD_PS _mm_load_ps
-#define _SIMD_RCP_PS _mm_rcp_ps
-#define _SIMD_MUL_PS _mm_mul_ps
-#define _SIMD_ADD_PS _mm_add_ps
-#define _SIMD_SUB_PS _mm_sub_ps
-#define _SIMD_STORE_PS _mm_store_ps
-#elif defined(USE_AVX)
-#define _SIMD_BYTE_STEP 8
-#define _SIMD_TYPE __m256
-#define _SIMD_SET1_PS _mm256_set1_ps
-#define _SIMD_LOAD_PS _mm256_load_ps
-#define _SIMD_RCP_PS _mm256_rcp_ps
-#define _SIMD_MUL_PS _mm256_mul_ps
-#define _SIMD_ADD_PS _mm256_add_ps
-#define _SIMD_SUB_PS _mm256_sub_ps
-#define _SIMD_STORE_PS _mm256_store_ps
-#endif
-
-#define ALIGN_BYTES 64
-// AVX, AVX2 (512 bits = 64 Bytes, 256 bits = 32 Bytes), SSE4.2 (128 bits = 16
+#define ALIGN_BYTES 32
+// AVX2 (512 bits = 64 Bytes), AVX (256 bits = 32 Bytes), SSE4.2 (128 bits = 16
 // Bytes)
 /** \internal Like malloc, but the returned pointer is guaranteed to be 32-byte
  * aligned. Fast, but wastes 32 additional bytes of memory. Does not throw any
@@ -48,8 +38,7 @@
 namespace nonlinear_optimizer {
 
 inline void* custom_aligned_malloc(std::size_t size) {
-  void* original =
-      std::malloc(size + ALIGN_BYTES);  // size+ALIGN_BYTES��ŭ �Ҵ��ϰ�,
+  void* original = std::malloc(size + ALIGN_BYTES);  // size+ALIGN_BYTES
   if (original == 0)
     return nullptr;  // if allocation is failed, return nullptr;
   void* aligned =
@@ -63,6 +52,98 @@ inline void* custom_aligned_malloc(std::size_t size) {
 /** \internal Frees memory allocated with handmade_aligned_malloc */
 inline void custom_aligned_free(void* ptr) {
   if (ptr) std::free(*(reinterpret_cast<void**>(ptr) - 1));
+};
+
+class SimdDataFloat {
+ public:
+  SimdDataFloat() { data_ = _mm256_setzero_ps(); }
+  explicit SimdDataFloat(const float scalar) { data_ = _mm256_set1_ps(scalar); }
+  explicit SimdDataFloat(const float n1, const float n2, const float n3,
+                         const float n4, const float n5, const float n6,
+                         const float n7, const float n8) {
+    data_ = _mm256_set_ps(n8, n7, n6, n5, n4, n3, n2, n1);
+  }
+  explicit SimdDataFloat(const float* rhs) { data_ = _mm256_load_ps(rhs); }
+  SimdDataFloat(const __m256& rhs) { data_ = rhs; }
+  SimdDataFloat(const SimdDataFloat& rhs) { data_ = rhs.data_; }
+  SimdDataFloat operator+(const float rhs) {
+    return SimdDataFloat(_mm256_add_ps(data_, _mm256_set1_ps(rhs)));
+  }
+  SimdDataFloat operator-(const float rhs) {
+    return SimdDataFloat(_mm256_sub_ps(data_, _mm256_set1_ps(rhs)));
+  }
+  SimdDataFloat operator*(const float rhs) {
+    return SimdDataFloat(_mm256_mul_ps(data_, _mm256_set1_ps(rhs)));
+  }
+  SimdDataFloat operator/(const float rhs) {
+    return SimdDataFloat(_mm256_div_ps(data_, _mm256_set1_ps(rhs)));
+  }
+  SimdDataFloat operator+(const SimdDataFloat& rhs) {
+    return SimdDataFloat(_mm256_add_ps(data_, rhs.data_));
+  }
+  SimdDataFloat operator-(const SimdDataFloat& rhs) {
+    return SimdDataFloat(_mm256_sub_ps(data_, rhs.data_));
+  }
+  SimdDataFloat operator*(const SimdDataFloat& rhs) {
+    return SimdDataFloat(_mm256_mul_ps(data_, rhs.data_));
+  }
+  SimdDataFloat operator/(const SimdDataFloat& rhs) {
+    return SimdDataFloat(_mm256_div_ps(data_, rhs.data_));
+  }
+  SimdDataFloat& operator=(const SimdDataFloat& rhs) {
+    data_ = rhs.data_;
+    return *this;
+  }
+  void StoreData(float* data) const { _mm256_store_ps(data, data_); }
+
+ private:
+  __m256 data_;
+};
+
+class SimdDataDouble {
+ public:
+  SimdDataDouble() { data_ = _mm256_setzero_pd(); }
+  explicit SimdDataDouble(const double scalar) {
+    data_ = _mm256_set1_pd(scalar);
+  }
+  explicit SimdDataDouble(const double n1, const double n2, const double n3,
+                          const double n4) {
+    data_ = _mm256_set_pd(n4, n3, n2, n1);
+  }
+  explicit SimdDataDouble(const double* rhs) { data_ = _mm256_load_pd(rhs); }
+  SimdDataDouble(const __m256d& rhs) { data_ = rhs; }
+  SimdDataDouble(const SimdDataDouble& rhs) { data_ = rhs.data_; }
+  SimdDataDouble operator=(const SimdDataDouble& rhs) {
+    return SimdDataDouble(rhs.data_);
+  }
+  SimdDataDouble operator+(const double rhs) {
+    return SimdDataDouble(_mm256_add_pd(data_, _mm256_set1_pd(rhs)));
+  }
+  SimdDataDouble operator-(const double rhs) {
+    return SimdDataDouble(_mm256_sub_pd(data_, _mm256_set1_pd(rhs)));
+  }
+  SimdDataDouble operator*(const double rhs) {
+    return SimdDataDouble(_mm256_mul_pd(data_, _mm256_set1_pd(rhs)));
+  }
+  SimdDataDouble operator/(const double rhs) {
+    return SimdDataDouble(_mm256_div_pd(data_, _mm256_set1_pd(rhs)));
+  }
+  SimdDataDouble operator+(const SimdDataDouble& rhs) {
+    return SimdDataDouble(_mm256_add_pd(data_, rhs.data_));
+  }
+  SimdDataDouble operator-(const SimdDataDouble& rhs) {
+    return SimdDataDouble(_mm256_sub_pd(data_, rhs.data_));
+  }
+  SimdDataDouble operator*(const SimdDataDouble& rhs) {
+    return SimdDataDouble(_mm256_mul_pd(data_, rhs.data_));
+  }
+  SimdDataDouble operator/(const SimdDataDouble& rhs) {
+    return SimdDataDouble(_mm256_div_pd(data_, rhs.data_));
+  }
+  void StoreData(double* data) const { _mm256_store_pd(data, data_); }
+
+ private:
+  __m256d data_;
 };
 
 }  // namespace nonlinear_optimizer

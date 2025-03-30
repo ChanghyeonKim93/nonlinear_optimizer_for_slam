@@ -1,1 +1,2 @@
 add_subdirectory(mahalanobis_distance_minimizer)
+add_subdirectory(utility_tests)
