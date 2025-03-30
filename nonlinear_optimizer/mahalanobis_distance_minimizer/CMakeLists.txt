@@ -12,6 +12,7 @@ set(UTILITY_SRC ${CMAKE_SOURCE_DIR}/nonlinear_optimizer/time_checker.cc)
 add_executable(
   ${PROJECT_NAME}_tests_simple_optimization_test
   tests/simple_optimization_test.cc mahalanobis_distance_minimizer_ceres.cc mahalanobis_distance_minimizer_analytic.cc
+  mahalanobis_distance_minimizer_analytic_simd.cc
   ${UTILITY_SRC})
 target_include_directories(
   ${PROJECT_NAME}_tests_simple_optimization_test
