@@ -13,7 +13,7 @@ MahalanobisDistanceMinimizerAnalyticSIMD::
 MahalanobisDistanceMinimizerAnalyticSIMD::
     ~MahalanobisDistanceMinimizerAnalyticSIMD() {}
 
-bool MahalanobisDistanceMinimizerAnalyticSIMD::Solve(
+bool MahalanobisDistanceMinimizerAnalyticSIMD::SolveUsingHelper(
     const std::vector<Correspondence>& correspondences, Pose* pose) {
   constexpr int max_iteration = 30;
   constexpr double min_lambda = 1e-6;
@@ -56,26 +56,15 @@ bool MahalanobisDistanceMinimizerAnalyticSIMD::Solve(
           {corr1.ndt.sqrt_information, corr2.ndt.sqrt_information,
            corr3.ndt.sqrt_information, corr4.ndt.sqrt_information});
 
-      std::cerr << "corr1.ndt.sqrt_information:\n"
-                << corr1.ndt.sqrt_information << std::endl;
-      std::cerr << "sqrt_info_: " << sqrt_info__ << std::endl;
-
       // clang-format off
       // pw = R*p + t
       const simd::Vector<3> pw__ = R__*p__ + t__;
-      std::cerr<< point_idx << "-th pw: "<< pw__<<std::endl;
 
       // e_i = pw - mean
       const simd::Vector<3> e__ = pw__ - mu__;
 
       // r = sqrt_info * e
       const simd::Vector<3> r__ = sqrt_info__ * e__;
-      std::cerr<< "r__: " << r__<<std::endl;
-
-      simd::Matrix<3,6> J__;
-      J__(0, 0) = sqrt_info__(0, 0); J__(0, 1) = sqrt_info__(0, 1); J__(0, 2) = sqrt_info__(0, 2);
-      J__(1, 0) = sqrt_info__(0, 1); J__(1, 1) = sqrt_info__(1, 1); J__(1, 2) = sqrt_info__(1, 2);
-      J__(2, 0) = sqrt_info__(0, 2); J__(2, 1) = sqrt_info__(1, 2); J__(2, 2) = sqrt_info__(2, 2);
 
       simd::Matrix<3,3> minus_R_skewp__;
       minus_R_skewp__(0, 0) =  R__(0, 2) * p__(1) - R__(0, 1) * p__(2);
@@ -87,8 +76,12 @@ bool MahalanobisDistanceMinimizerAnalyticSIMD::Solve(
       minus_R_skewp__(0, 2) =  R__(0, 1) * p__(0) - R__(0, 0) * p__(1);
       minus_R_skewp__(1, 2) =  R__(1, 1) * p__(0) - R__(1, 0) * p__(1);
       minus_R_skewp__(2, 2) =  R__(2, 1) * p__(0) - R__(2, 0) * p__(1);
-
       const simd::Matrix<3,3> sqrt_info_minus_R_skewp_ = sqrt_info__ * minus_R_skewp__;
+
+      simd::Matrix<3,6> J__;
+      J__(0, 0) = sqrt_info__(0, 0); J__(0, 1) = sqrt_info__(0, 1); J__(0, 2) = sqrt_info__(0, 2);
+      J__(1, 0) = sqrt_info__(1, 0); J__(1, 1) = sqrt_info__(1, 1); J__(1, 2) = sqrt_info__(1, 2);
+      J__(2, 0) = sqrt_info__(2, 0); J__(2, 1) = sqrt_info__(2, 1); J__(2, 2) = sqrt_info__(2, 2);
       J__(0, 3) = sqrt_info_minus_R_skewp_(0, 0); J__(0, 4) = sqrt_info_minus_R_skewp_(0, 1); J__(0, 5) = sqrt_info_minus_R_skewp_(0, 2);
       J__(1, 3) = sqrt_info_minus_R_skewp_(0, 1); J__(1, 4) = sqrt_info_minus_R_skewp_(1, 1); J__(1, 5) = sqrt_info_minus_R_skewp_(1, 2);
       J__(2, 3) = sqrt_info_minus_R_skewp_(0, 2); J__(2, 4) = sqrt_info_minus_R_skewp_(1, 2); J__(2, 5) = sqrt_info_minus_R_skewp_(2, 2);
@@ -97,7 +90,6 @@ bool MahalanobisDistanceMinimizerAnalyticSIMD::Solve(
       // Compute loss and weight,
       // and add the local gradient and hessian to the global ones
       simd::Scalar sq_r__ = r__.GetNorm();
-      std::cerr << "sq_r__:" << sq_r__ << std::endl;
 
       simd::Scalar loss__(sq_r__);
       simd::Scalar weight__(1.0);
@@ -118,9 +110,6 @@ bool MahalanobisDistanceMinimizerAnalyticSIMD::Solve(
 
       // g(i) += (J(0,i)*r(0) + J(1,i)*r(1) + J(2,i)*r(2))
       gradient__ = (J__.transpose() * r__) * weight__;
-      std::cerr << "loss__:" << loss__ << std::endl;
-      std::cerr << "weight__:" << weight__ << std::endl;
-      std::cerr << "gradient__:" << gradient__ << std::endl;
 
       // H(i,j) = sum_{k} w * J(k,i) * J(k,j)
       // H(i,j) += (J(0,i)*J(0,j) + J(1,i)*J(1,j) + J(2,i)*J(2,j));
@@ -145,8 +134,6 @@ bool MahalanobisDistanceMinimizerAnalyticSIMD::Solve(
     Mat6x6 hessian{Mat6x6::Zero()};
     Vec6 gradient{Vec6::Zero()};
     for (int ii = 0; ii < 6; ++ii) {
-      std::cerr << ii << "-th gradient elem : " << buf[0] << " " << buf[1]
-                << " " << buf[2] << " " << buf[3] << std::endl;
       gradient__(ii).StoreData(buf);
       gradient(ii) += (buf[0] + buf[1] + buf[2] + buf[3]);
       for (int jj = ii; jj < 6; ++jj) {
@@ -154,15 +141,17 @@ bool MahalanobisDistanceMinimizerAnalyticSIMD::Solve(
         hessian(ii, jj) += (buf[0] + buf[1] + buf[2] + buf[3]);
       }
     }
+    std::cerr << "Cost: " << cost << std::endl;
 
     // Reflect the hessian
     ReflectHessian(&hessian);
-    std::cerr << "cost: " << cost << std::endl;
-    std::cerr << "gradient: " << gradient.transpose() << std::endl;
-    std::cerr << "hessian:\n" << hessian << std::endl;
 
     // Damping hessian
     for (int k = 0; k < 6; k++) hessian(k, k) *= 1.0 + lambda;
+
+    std::cerr << "Gradient and Hessian (helper):\n"
+              << gradient.transpose() << "\n"
+              << hessian << std::endl;
 
     // Compute the step
     const Vec6 update_step = hessian.ldlt().solve(-gradient);
@@ -198,7 +187,7 @@ bool MahalanobisDistanceMinimizerAnalyticSIMD::Solve(
   return true;
 }
 
-bool MahalanobisDistanceMinimizerAnalyticSIMD::SolveScalar(
+bool MahalanobisDistanceMinimizerAnalyticSIMD::Solve(
     const std::vector<Correspondence>& correspondences, Pose* pose) {
   constexpr int max_iteration = 30;
   constexpr double min_lambda = 1e-6;
@@ -369,6 +358,7 @@ bool MahalanobisDistanceMinimizerAnalyticSIMD::SolveScalar(
     double buf[4];
     cost__.StoreData(buf);
     cost += (buf[0] + buf[1] + buf[2] + buf[3]);
+    std::cerr << "Cost: " << cost << std::endl;
 
     Mat6x6 hessian{Mat6x6::Zero()};
     Vec6 gradient{Vec6::Zero()};
@@ -385,6 +375,10 @@ bool MahalanobisDistanceMinimizerAnalyticSIMD::SolveScalar(
 
     // Reflect the hessian
     ReflectHessian(&hessian);
+
+    std::cerr << "Gradient and Hessian:\n"
+              << gradient.transpose() << "\n"
+              << hessian << std::endl;
 
     // Damping hessian
     for (int k = 0; k < 6; k++) hessian(k, k) *= 1.0 + lambda;

@@ -24,4 +24,35 @@ TEST_F(SimdHelperTest, SimdDataLoadAndSaveTest) {
   // SIMD vector data
 }
 
+TEST_F(SimdHelperTest, MatrixVectorMultiplyTest) {
+  Eigen::Matrix3d M1;
+  M1 << 1, 2, 3, 4, 5, 6, 7, 8, 9;
+  Eigen::Matrix3d M2;
+  M2 << 1, -2, 3, -4, 5, -6, 7, -8, 9;
+  Eigen::Matrix3d M3;
+  M3 << -1, 2, -3, 4, -5, 6, -7, 8, -9;
+  Eigen::Matrix3d M4;
+  M4 << 9, -8, 7, -6, 5, -4, 3, -1, 2;
+  Eigen::Vector3d v1(4, 6, 8);
+  Eigen::Vector3d v2(-3, 1, 6);
+  Eigen::Vector3d v3(9, 3, -5);
+  Eigen::Vector3d v4(1, 6, -10);
+
+  std::vector<Eigen::Vector3d> res_true;
+  res_true.push_back(M1 * v1);
+  res_true.push_back(M2 * v2);
+  res_true.push_back(M3 * v3);
+  res_true.push_back(M4 * v4);
+
+  simd::Matrix<3, 3> M__({M1, M2, M3, M4});
+  simd::Vector<3> v__({v1, v2, v3, v4});
+  const auto Mv__ = M__ * v__;
+  std::vector<Eigen::Vector3d> res;
+  Mv__.StoreData(&res);
+  for (int i = 0; i < 3; ++i)
+    for (int k = 0; k < 4; ++k) {
+      EXPECT_DOUBLE_EQ(res_true[k](i), res[k](i));
+    }
+}
+
 }  // namespace nonlinear_optimizer

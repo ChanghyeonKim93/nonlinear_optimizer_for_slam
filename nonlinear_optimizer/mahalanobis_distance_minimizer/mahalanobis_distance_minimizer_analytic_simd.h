@@ -19,8 +19,8 @@ class MahalanobisDistanceMinimizerAnalyticSIMD
 
   bool Solve(const std::vector<Correspondence>& correspondences,
              Pose* pose) final;
-  bool SolveScalar(const std::vector<Correspondence>& correspondences,
-                   Pose* pose);
+  bool SolveUsingHelper(const std::vector<Correspondence>& correspondences,
+                        Pose* pose);
 
  private:
   void ComputeJacobianAndResidual(const Mat3x3& rotation,

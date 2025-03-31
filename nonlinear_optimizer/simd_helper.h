@@ -263,7 +263,7 @@ class Vector {
   Vector operator-(const Vector& rhs) const {
     Vector res;
     for (int row = 0; row < kRow; ++row)
-      res.data_[row] = data_[row] + rhs.data_[row];
+      res.data_[row] = data_[row] - rhs.data_[row];
     return res;
   }
   Vector operator*(const double scalar) const {
@@ -277,17 +277,19 @@ class Vector {
     return res;
   }
   Vector& operator+=(const Vector& rhs) {
-    for (int row = 0; row < kRow; ++row)
-      data_[row] = data_[row] + rhs.data_[row];
+    for (int row = 0; row < kRow; ++row) data_[row] += rhs.data_[row];
+    return *this;
+  }
+  Vector& operator+=(const double scalar) {
+    for (int row = 0; row < kRow; ++row) data_[row] += scalar;
     return *this;
   }
   Vector& operator-=(const Vector& rhs) {
-    for (int row = 0; row < kRow; ++row)
-      data_[row] = data_[row] + rhs.data_[row];
+    for (int row = 0; row < kRow; ++row) data_[row] -= rhs.data_[row];
     return *this;
   }
   Vector& operator-=(const double scalar) {
-    for (int row = 0; row < kRow; ++row) data_[row] *= scalar;
+    for (int row = 0; row < kRow; ++row) data_[row] -= scalar;
     return *this;
   }
 
@@ -417,22 +419,23 @@ class Matrix {
     return res;
   }
   Vector<kRow> operator*(const Vector<kCol>& vector) const {
-    Vector<kRow> res;
+    Vector<kRow> res(Eigen::Matrix<double, kRow, 1>::Zero());
     for (int row = 0; row < kRow; ++row)
       for (int col = 0; col < kCol; ++col)
         res.data_[row] += data_[row][col] * vector(col);
+
     return res;
   }
   Matrix& operator+=(const Matrix& rhs) {
     for (int row = 0; row < kRow; ++row)
       for (int col = 0; col < kCol; ++col)
-        data_[row][col] = data_[row][col] + rhs.data_[row][col];
+        data_[row][col] += rhs.data_[row][col];
     return *this;
   }
   Matrix& operator-=(const Matrix& rhs) {
     for (int row = 0; row < kRow; ++row)
       for (int col = 0; col < kCol; ++col)
-        data_[row][col] = data_[row][col] - rhs.data_[row][col];
+        data_[row][col] -= rhs.data_[row][col];
     return *this;
   }
 
