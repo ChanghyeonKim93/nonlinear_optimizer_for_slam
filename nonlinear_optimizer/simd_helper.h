@@ -1,6 +1,8 @@
 #ifndef NONLINEAR_OPTIMIZER_SIMD_HELPER_H_
 #define NONLINEAR_OPTIMIZER_SIMD_HELPER_H_
 
+#include <iostream>
+
 #include "immintrin.h"
 
 #include "Eigen/Dense"
@@ -113,6 +115,18 @@ class ScalarFloat {
 
   void StoreData(float* data) const { _mm256_store_ps(data, data_); }
 
+  friend std::ostream& operator<<(std::ostream& outputStream,
+                                  const ScalarFloat& scalar) {
+    float multi_scalars[4];
+    scalar.StoreData(multi_scalars);
+    std::cout << "[["
+              << "[" << multi_scalars[0] << "],\n"
+              << "[" << multi_scalars[1] << "],\n"
+              << "[" << multi_scalars[2] << "],\n"
+              << "[" << multi_scalars[3] << "]]" << std::endl;
+    return outputStream;
+  }
+
   static size_t GetDataStep() { return _SIMD_DATA_STEP_FLOAT; }
 
  private:
@@ -174,6 +188,18 @@ class Scalar {
 
   void StoreData(double* data) const { _mm256_store_pd(data, data_); }
 
+  friend std::ostream& operator<<(std::ostream& outputStream,
+                                  const Scalar& scalar) {
+    double multi_scalars[4];
+    scalar.StoreData(multi_scalars);
+    std::cout << "[["
+              << "[" << multi_scalars[0] << "],\n"
+              << "[" << multi_scalars[1] << "],\n"
+              << "[" << multi_scalars[2] << "],\n"
+              << "[" << multi_scalars[3] << "]]" << std::endl;
+    return outputStream;
+  }
+
   static size_t GetDataStep() { return _SIMD_DATA_STEP_DOUBLE; }
 
  private:
@@ -184,6 +210,12 @@ class Scalar {
 /// data_[0] = SimdDouble(v1.x(), v2.x(), v3.x(), v4.x());
 /// data_[1] = SimdDouble(v1.y(), v2.y(), v3.y(), v4.y());
 /// data_[2] = SimdDouble(v1.z(), v2.z(), v3.z(), v4.z());
+
+template <int kRow, int kCol>
+class ScalarBase {
+ protected:
+  __m256d data_[kRow][kCol];
+};
 
 /// @tparam kRow
 template <int kRow>
@@ -206,7 +238,7 @@ class Vector {
       throw std::runtime_error("Wrong number of data");
     for (int row = 0; row < kRow; ++row) {
       double buf[kDataStep];
-      for (int k = 0; k < kDataStep; ++k) buf[k] = multi_vectors[k](row);
+      for (size_t k = 0; k < kDataStep; ++k) buf[k] = multi_vectors[k](row);
       data_[row] = Scalar(buf);
     }
   }
@@ -214,6 +246,9 @@ class Vector {
   Vector(const Vector& rhs) {
     for (int row = 0; row < kRow; ++row) data_[row] = rhs.data_[row];
   }
+  Scalar& operator()(const int row) { return data_[row]; }
+  const Scalar& operator()(const int row) const { return data_[row]; }
+
   Vector& operator=(const Vector& rhs) {
     for (int row = 0; row < kRow; ++row) data_[row] = rhs.data_[row];
     return *this;
@@ -232,6 +267,11 @@ class Vector {
     return res;
   }
   Vector operator*(const double scalar) const {
+    Vector res;
+    for (int row = 0; row < kRow; ++row) res.data_[row] = data_[row] * scalar;
+    return res;
+  }
+  Vector operator*(const Scalar scalar) const {
     Vector res;
     for (int row = 0; row < kRow; ++row) res.data_[row] = data_[row] * scalar;
     return res;
@@ -273,6 +313,18 @@ class Vector {
     }
   }
 
+  friend std::ostream& operator<<(std::ostream& outputStream,
+                                  const Vector& vec) {
+    std::vector<EigenVec> multi_vectors;
+    vec.StoreData(&multi_vectors);
+    std::cout << "["
+              << "[" << multi_vectors[0] << "],\n"
+              << "[" << multi_vectors[1] << "],\n"
+              << "[" << multi_vectors[2] << "],\n"
+              << "[" << multi_vectors[3] << "]]" << std::endl;
+    return outputStream;
+  }
+
  private:
   Scalar data_[kRow];
   template <int kMatRow, int kMatCol>
@@ -306,7 +358,7 @@ class Matrix {
     for (int row = 0; row < kRow; ++row) {
       for (int col = 0; col < kCol; ++col) {
         double buf[kDataStep];
-        for (int k = 0; k < kDataStep; ++k)
+        for (size_t k = 0; k < kDataStep; ++k)
           buf[k] = multi_matrices[k](row, col);
         data_[row][col] = Scalar(buf);
       }
@@ -317,13 +369,16 @@ class Matrix {
       for (int col = 0; col < kCol; ++col)
         data_[row][col] = rhs.data_[row][col];
   }
+  Scalar& operator()(const int row, const int col) { return data_[row][col]; }
+  const Scalar& operator()(const int row, const int col) const {
+    return data_[row][col];
+  }
   Matrix& operator=(const Matrix& rhs) {
     for (int row = 0; row < kRow; ++row)
       for (int col = 0; col < kCol; ++col)
         data_[row][col] = rhs.data_[row][col];
     return *this;
   }
-
   Matrix operator+(const Matrix& rhs) const {
     Matrix res;
     for (int row = 0; row < kRow; ++row)
@@ -345,16 +400,27 @@ class Matrix {
         res.data_[row][col] = data_[row][col] * scalar;
     return res;
   }
+  Matrix operator*(const Scalar scalar) const {
+    Matrix res;
+    for (int row = 0; row < kRow; ++row)
+      for (int col = 0; col < kCol; ++col)
+        res.data_[row][col] = data_[row][col] * scalar;
+    return res;
+  }
   template <int kRhsCol>
   Matrix<kRow, kRhsCol> operator*(const Matrix<kCol, kRhsCol>& matrix) const {
     Matrix<kRow, kRhsCol> res;
+    for (int row = 0; row < kRow; ++row)
+      for (int col = 0; col < kRhsCol; ++col)
+        for (int k = 0; k < kCol; ++k)
+          res(row, col) += data_[row][k] * matrix(k, col);
     return res;
   }
   Vector<kRow> operator*(const Vector<kCol>& vector) const {
     Vector<kRow> res;
     for (int row = 0; row < kRow; ++row)
       for (int col = 0; col < kCol; ++col)
-        res.data_[row] += data_[row][col] * vector.data_[col];
+        res.data_[row] += data_[row][col] * vector(col);
     return res;
   }
   Matrix& operator+=(const Matrix& rhs) {
@@ -370,16 +436,36 @@ class Matrix {
     return *this;
   }
 
+  Matrix<kCol, kRow> transpose() const {
+    Matrix<kCol, kRow> mat_trans;
+    for (int row = 0; row < kRow; ++row)
+      for (int col = 0; col < kCol; ++col)
+        mat_trans(col, row) = data_[row][col];
+    return mat_trans;
+  }
+
   void StoreData(std::vector<EigenMat>* multi_matrices) const {
     if (multi_matrices->size() != kDataStep) multi_matrices->resize(kDataStep);
     for (int row = 0; row < kRow; ++row) {
       for (int col = 0; col < kCol; ++col) {
         double buf[kDataStep];
         data_[row][col].StoreData(buf);
-        for (int k = 0; k < kDataStep; ++k)
+        for (size_t k = 0; k < kDataStep; ++k)
           multi_matrices->at(k)(row, col) = buf[k];
       }
     }
+  }
+
+  friend std::ostream& operator<<(std::ostream& outputStream,
+                                  const Matrix& mat) {
+    std::vector<EigenMat> multi_matrices;
+    mat.StoreData(&multi_matrices);
+    std::cout << "[["
+              << "[" << multi_matrices[0] << "],\n"
+              << "[" << multi_matrices[1] << "],\n"
+              << "[" << multi_matrices[2] << "],\n"
+              << "[" << multi_matrices[3] << "]]" << std::endl;
+    return outputStream;
   }
 
  private:

@@ -49,6 +49,9 @@ Pose OptimizePoseAnalytic(const NdtMap& ndt_map,
 Pose OptimizePoseAnalyticSimd(const NdtMap& ndt_map,
                               const std::vector<Vec3>& local_points,
                               const Pose& initial_pose);
+Pose OptimizePoseAnalyticSimdNaive(const NdtMap& ndt_map,
+                                   const std::vector<Vec3>& local_points,
+                                   const Pose& initial_pose);
 
 }  // namespace mahalanobis_distance_minimizer
 }  // namespace nonlinear_optimizer
@@ -58,7 +61,7 @@ using namespace nonlinear_optimizer::mahalanobis_distance_minimizer;
 
 int main(int, char**) {
   constexpr double kVoxelResolution{1.0};
-  constexpr double kFilterVoxelResolution{0.1};
+  constexpr double kFilterVoxelResolution{0.3};
 
   // Make global points
   const auto points = GenerateGlobalPoints();
@@ -93,9 +96,12 @@ int main(int, char**) {
   std::cerr << "Start OptimizePoseAnalytic" << std::endl;
   const auto opt_pose_analytic =
       OptimizePoseAnalytic(ndt_map, local_points, initial_pose);
-  std::cerr << "Start OptimizePoseAnalyticSIMD" << std::endl;
+  // std::cerr << "Start OptimizePoseAnalyticSIMD" << std::endl;
+  // const auto opt_pose_analytic_simd =
+  //     OptimizePoseAnalyticSimd(ndt_map, local_points, initial_pose);
+  std::cerr << "Start OptimizePoseAnalyticSIMDNaive" << std::endl;
   const auto opt_pose_analytic_simd =
-      OptimizePoseAnalyticSimd(ndt_map, local_points, initial_pose);
+      OptimizePoseAnalyticSimdNaive(ndt_map, local_points, initial_pose);
 
   std::cerr << "Pose (ceres redundant): "
             << opt_pose_ceres_redundant.translation().transpose() << " "
@@ -492,6 +498,40 @@ Pose OptimizePoseAnalyticSimd(const NdtMap& ndt_map,
         std::make_shared<nonlinear_optimizer::ExponentialLossFunction>(1.0,
                                                                        1.0));
     optim->Solve(correspondences, &optimized_pose);
+
+    Pose pose_diff = optimized_pose.inverse() * last_optimized_pose;
+    if (pose_diff.translation().norm() < 1e-5 &&
+        Orientation(pose_diff.linear()).vec().norm() < 1e-5) {
+      break;
+    }
+    last_optimized_pose = optimized_pose;
+  }
+  std::cerr << "outer_iter: " << outer_iter << std::endl;
+
+  return optimized_pose;
+}
+
+Pose OptimizePoseAnalyticSimdNaive(const NdtMap& ndt_map,
+                                   const std::vector<Vec3>& local_points,
+                                   const Pose& initial_pose) {
+  CHECK_EXEC_TIME_FROM_HERE
+
+  Pose optimized_pose = initial_pose;
+  Pose last_optimized_pose = optimized_pose;
+  int outer_iter = 0;
+  for (; outer_iter < 10; ++outer_iter) {
+    const auto correspondences =
+        MatchPointCloud(ndt_map, local_points, optimized_pose);
+
+    std::unique_ptr<nonlinear_optimizer::mahalanobis_distance_minimizer::
+                        MahalanobisDistanceMinimizerAnalyticSIMD>
+        optim = std::make_unique<
+            nonlinear_optimizer::mahalanobis_distance_minimizer::
+                MahalanobisDistanceMinimizerAnalyticSIMD>();
+    optim->SetLossFunction(
+        std::make_shared<nonlinear_optimizer::ExponentialLossFunction>(1.0,
+                                                                       1.0));
+    optim->SolveScalar(correspondences, &optimized_pose);
 
     Pose pose_diff = optimized_pose.inverse() * last_optimized_pose;
     if (pose_diff.translation().norm() < 1e-5 &&
