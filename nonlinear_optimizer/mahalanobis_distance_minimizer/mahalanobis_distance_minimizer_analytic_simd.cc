@@ -15,48 +15,6 @@ MahalanobisDistanceMinimizerAnalyticSIMD::
 
 bool MahalanobisDistanceMinimizerAnalyticSIMD::Solve(
     const std::vector<Correspondence>& correspondences, Pose* pose) {
-  auto mult_mat_by_mat = [](const SimdDouble lhs[3][3],
-                            const SimdDouble rhs[3][3], SimdDouble res[3][3]) {
-    res[0][0] =
-        lhs[0][0] * rhs[0][0] + lhs[0][1] * rhs[1][0] + lhs[0][2] * rhs[2][0];
-    res[0][1] =
-        lhs[0][0] * rhs[0][1] + lhs[0][1] * rhs[1][1] + lhs[0][2] * rhs[2][1];
-    res[0][2] =
-        lhs[0][0] * rhs[0][2] + lhs[0][1] * rhs[1][2] + lhs[0][2] * rhs[2][2];
-
-    res[1][0] =
-        lhs[1][0] * rhs[0][0] + lhs[1][1] * rhs[1][0] + lhs[1][2] * rhs[2][0];
-    res[1][1] =
-        lhs[1][0] * rhs[0][1] + lhs[1][1] * rhs[1][1] + lhs[1][2] * rhs[2][1];
-    res[1][2] =
-        lhs[1][0] * rhs[0][2] + lhs[1][1] * rhs[1][2] + lhs[1][2] * rhs[2][2];
-
-    res[2][0] =
-        lhs[2][0] * rhs[0][0] + lhs[2][1] * rhs[1][0] + lhs[2][2] * rhs[2][0];
-    res[2][1] =
-        lhs[2][0] * rhs[0][1] + lhs[2][1] * rhs[1][1] + lhs[2][2] * rhs[2][1];
-    res[2][2] =
-        lhs[2][0] * rhs[0][2] + lhs[2][1] * rhs[1][2] + lhs[2][2] * rhs[2][2];
-  };
-  auto mult_mat_by_vec = [](const SimdDouble lhs[3][3], const SimdDouble rhs[3],
-                            SimdDouble res[3]) {
-    res[0] = lhs[0][0] * rhs[0] + lhs[0][1] * rhs[1] + lhs[0][2] * rhs[2];
-    res[1] = lhs[1][0] * rhs[0] + lhs[1][1] * rhs[1] + lhs[1][2] * rhs[2];
-    res[2] = lhs[2][0] * rhs[0] + lhs[2][1] * rhs[1] + lhs[2][2] * rhs[2];
-  };
-  auto add_vec_to_vec = [](const SimdDouble lhs[3], const SimdDouble rhs[3],
-                           SimdDouble res[3]) {
-    res[0] = lhs[0] + rhs[0];
-    res[1] = lhs[1] + rhs[1];
-    res[2] = lhs[2] + rhs[2];
-  };
-  auto sub_vec_to_vec = [](const SimdDouble lhs[3], const SimdDouble rhs[3],
-                           SimdDouble res[3]) {
-    res[0] = lhs[0] - rhs[0];
-    res[1] = lhs[1] - rhs[1];
-    res[2] = lhs[2] - rhs[2];
-  };
-
   constexpr int max_iteration = 30;
   constexpr double min_lambda = 1e-6;
   constexpr double max_lambda = 1e-2;
@@ -73,19 +31,19 @@ bool MahalanobisDistanceMinimizerAnalyticSIMD::Solve(
     const Mat3x3 opt_R = optimized_orientation.toRotationMatrix();
     const Vec3 opt_t = optimized_translation;
 
-    SimdDouble R__[3][3];
-    SimdDouble t__[3];
+    simd::Scalar R__[3][3];
+    simd::Scalar t__[3];
     for (int row = 0; row < 3; ++row) {
-      t__[row] = SimdDouble(opt_t(row));
+      t__[row] = simd::Scalar(opt_t(row));
       for (int col = 0; col < 3; ++col)
-        R__[row][col] = SimdDouble(opt_R(row, col));
+        R__[row][col] = simd::Scalar(opt_R(row, col));
     }
 
-    SimdDouble gradient__[6];
-    SimdDouble hessian__[6][6];
-    SimdDouble cost__;
+    simd::Scalar gradient__[6];
+    simd::Scalar hessian__[6][6];
+    simd::Scalar cost__;
     double cost = 0.0;
-    const size_t stride = SimdDouble::GetDataStep();
+    const size_t stride = simd::Scalar::GetDataStep();
     const int num_stride = correspondences.size() / stride;
     for (size_t point_idx = 0; point_idx < num_stride * stride;
          point_idx += stride) {
@@ -96,7 +54,7 @@ bool MahalanobisDistanceMinimizerAnalyticSIMD::Solve(
       double my_buf[stride];
       double mz_buf[stride];
       double sqrt_info_buf[3][3][stride];
-      for (int k = 0; k < stride; ++k) {
+      for (size_t k = 0; k < stride; ++k) {
         const auto& corr = correspondences.at(point_idx + k);
         px_buf[k] = corr.point(0);
         py_buf[k] = corr.point(1);
@@ -112,48 +70,48 @@ bool MahalanobisDistanceMinimizerAnalyticSIMD::Solve(
         sqrt_info_buf[2][2][k] = corr.ndt.sqrt_information(2, 2);
       }
 
-      SimdDouble p__[3];
-      p__[0] = SimdDouble(px_buf);
-      p__[1] = SimdDouble(py_buf);
-      p__[2] = SimdDouble(pz_buf);
+      simd::Scalar p__[3];
+      p__[0] = simd::Scalar(px_buf);
+      p__[1] = simd::Scalar(py_buf);
+      p__[2] = simd::Scalar(pz_buf);
 
-      SimdDouble mu__[3];
-      mu__[0] = SimdDouble(mx_buf);
-      mu__[1] = SimdDouble(my_buf);
-      mu__[2] = SimdDouble(mz_buf);
+      simd::Scalar mu__[3];
+      mu__[0] = simd::Scalar(mx_buf);
+      mu__[1] = simd::Scalar(my_buf);
+      mu__[2] = simd::Scalar(mz_buf);
 
-      SimdDouble sqrt_info__[3][3];
-      sqrt_info__[0][0] = SimdDouble(sqrt_info_buf[0][0]);
-      sqrt_info__[0][1] = SimdDouble(sqrt_info_buf[0][1]);
-      sqrt_info__[0][2] = SimdDouble(sqrt_info_buf[0][2]);
-      sqrt_info__[1][1] = SimdDouble(sqrt_info_buf[1][1]);
-      sqrt_info__[1][2] = SimdDouble(sqrt_info_buf[1][2]);
-      sqrt_info__[2][2] = SimdDouble(sqrt_info_buf[2][2]);
+      simd::Scalar sqrt_info__[3][3];
+      sqrt_info__[0][0] = simd::Scalar(sqrt_info_buf[0][0]);
+      sqrt_info__[0][1] = simd::Scalar(sqrt_info_buf[0][1]);
+      sqrt_info__[0][2] = simd::Scalar(sqrt_info_buf[0][2]);
+      sqrt_info__[1][1] = simd::Scalar(sqrt_info_buf[1][1]);
+      sqrt_info__[1][2] = simd::Scalar(sqrt_info_buf[1][2]);
+      sqrt_info__[2][2] = simd::Scalar(sqrt_info_buf[2][2]);
 
       // clang-format off
       // pw = R*p + t
-      SimdDouble pw__[3];
+      simd::Scalar pw__[3];
       pw__[0] = R__[0][0] * p__[0] + R__[0][1] * p__[1] + R__[0][2] * p__[2] + t__[0];
       pw__[1] = R__[1][0] * p__[0] + R__[1][1] * p__[1] + R__[1][2] * p__[2] + t__[1];
       pw__[2] = R__[2][0] * p__[0] + R__[2][1] * p__[1] + R__[2][2] * p__[2] + t__[2];
 
       // e_i = pw - mean
-      SimdDouble e__[3];
+      simd::Scalar e__[3];
       e__[0] = pw__[0] - mu__[0];
       e__[1] = pw__[1] - mu__[1];
       e__[2] = pw__[2] - mu__[2];
       // r = sqrt_info * e
-      SimdDouble r__[3];
+      simd::Scalar r__[3];
       r__[0] = sqrt_info__[0][0] * e__[0] + sqrt_info__[0][1] * e__[1] + sqrt_info__[0][2] * e__[2];
       r__[1] = sqrt_info__[0][1] * e__[0] + sqrt_info__[1][1] * e__[1] + sqrt_info__[1][2] * e__[2];
       r__[2] = sqrt_info__[0][2] * e__[0] + sqrt_info__[1][2] * e__[1] + sqrt_info__[2][2] * e__[2];
 
-      SimdDouble J__[3][6];
+      simd::Scalar J__[3][6];
       J__[0][0] = sqrt_info__[0][0]; J__[0][1] = sqrt_info__[0][1]; J__[0][2] = sqrt_info__[0][2];
       J__[1][0] = sqrt_info__[0][1]; J__[1][1] = sqrt_info__[1][1]; J__[1][2] = sqrt_info__[1][2];
       J__[2][0] = sqrt_info__[0][2]; J__[2][1] = sqrt_info__[1][2]; J__[2][2] = sqrt_info__[2][2];
 
-      SimdDouble minus_R_skewp__[3][3];
+      simd::Scalar minus_R_skewp__[3][3];
       minus_R_skewp__[0][0] =  R__[0][2] * p__[1] - R__[0][1] * p__[2];
       minus_R_skewp__[1][0] =  R__[1][2] * p__[1] - R__[1][1] * p__[2];
       minus_R_skewp__[2][0] =  R__[2][2] * p__[1] - R__[2][1] * p__[2];
@@ -179,9 +137,9 @@ bool MahalanobisDistanceMinimizerAnalyticSIMD::Solve(
 
       // Compute loss and weight,
       // and add the local gradient and hessian to the global ones
-      SimdDouble sq_r__ = r__[0] * r__[0] + r__[1] * r__[1] + r__[2] * r__[2];
-      SimdDouble loss__(sq_r__);
-      SimdDouble weight__(1.0);
+      simd::Scalar sq_r__ = r__[0] * r__[0] + r__[1] * r__[1] + r__[2] * r__[2];
+      simd::Scalar loss__(sq_r__);
+      simd::Scalar weight__(1.0);
       if (loss_function_ != nullptr) {
         double sq_r_buf[4];
         sq_r__.StoreData(sq_r_buf);
@@ -193,8 +151,8 @@ bool MahalanobisDistanceMinimizerAnalyticSIMD::Solve(
           loss_buf[k] = loss_output[0];
           weight_buf[k] = loss_output[1];
         }
-        loss__ = SimdDouble(loss_buf);
-        weight__ = SimdDouble(weight_buf);
+        loss__ = simd::Scalar(loss_buf);
+        weight__ = simd::Scalar(weight_buf);
       }
 
       // g(i) += (J(0,i)*r(0) + J(1,i)*r(1) + J(2,i)*r(2))
@@ -272,23 +230,6 @@ bool MahalanobisDistanceMinimizerAnalyticSIMD::Solve(
   pose->linear() = optimized_orientation.toRotationMatrix();
 
   return true;
-}
-
-void MahalanobisDistanceMinimizerAnalyticSIMD::AllocateSIMDBuffer() {
-  // x__ = (double*)custom_aligned_malloc(sizeof(double) * 16);
-  // y__ = (double*)custom_aligned_malloc(sizeof(double) * 16);
-  // z__ = (double*)custom_aligned_malloc(sizeof(double) * 16);
-  // sqrt_info_xx__ = (double*)custom_aligned_malloc(sizeof(double) * 16);
-  // sqrt_info_xy__ = (double*)custom_aligned_malloc(sizeof(double) * 16);
-  // sqrt_info_xz__ = (double*)custom_aligned_malloc(sizeof(double) * 16);
-  // sqrt_info_yy__ = (double*)custom_aligned_malloc(sizeof(double) * 16);
-  // sqrt_info_yz__ = (double*)custom_aligned_malloc(sizeof(double) * 16);
-  // sqrt_info_zz__ = (double*)custom_aligned_malloc(sizeof(double) * 16);
-  // ex__ = (double*)custom_aligned_malloc(sizeof(double) * 16);
-  // ey__ = (double*)custom_aligned_malloc(sizeof(double) * 16);
-  // ez__ = (double*)custom_aligned_malloc(sizeof(double) * 16);
-  // hessian__ = (double*)custom_aligned_malloc(sizeof(double) * 15);
-  // gradient__ = (double*)custom_aligned_malloc(sizeof(double) * 6);
 }
 
 void MahalanobisDistanceMinimizerAnalyticSIMD::ComputeJacobianAndResidual(

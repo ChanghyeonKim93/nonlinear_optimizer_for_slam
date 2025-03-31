@@ -38,6 +38,7 @@
  */
 
 namespace nonlinear_optimizer {
+namespace simd {
 
 inline void* custom_aligned_malloc(std::size_t size) {
   void* original = std::malloc(size + ALIGN_BYTES);  // size+ALIGN_BYTES
@@ -56,56 +57,56 @@ inline void custom_aligned_free(void* ptr) {
   if (ptr) std::free(*(reinterpret_cast<void**>(ptr) - 1));
 }
 
-class SimdFloat {
+class ScalarFloat {
  public:
-  SimdFloat() { data_ = _mm256_setzero_ps(); }
-  explicit SimdFloat(const float scalar) { data_ = _mm256_set1_ps(scalar); }
-  explicit SimdFloat(const float n1, const float n2, const float n3,
-                     const float n4, const float n5, const float n6,
-                     const float n7, const float n8) {
+  ScalarFloat() { data_ = _mm256_setzero_ps(); }
+  explicit ScalarFloat(const float scalar) { data_ = _mm256_set1_ps(scalar); }
+  explicit ScalarFloat(const float n1, const float n2, const float n3,
+                       const float n4, const float n5, const float n6,
+                       const float n7, const float n8) {
     data_ = _mm256_set_ps(n8, n7, n6, n5, n4, n3, n2, n1);
   }
-  explicit SimdFloat(const float* rhs) { data_ = _mm256_load_ps(rhs); }
-  SimdFloat(const __m256& rhs) { data_ = rhs; }
-  SimdFloat(const SimdFloat& rhs) { data_ = rhs.data_; }
-  SimdFloat& operator=(const SimdFloat& rhs) {
+  explicit ScalarFloat(const float* rhs) { data_ = _mm256_load_ps(rhs); }
+  ScalarFloat(const __m256& rhs) { data_ = rhs; }
+  ScalarFloat(const ScalarFloat& rhs) { data_ = rhs.data_; }
+  ScalarFloat& operator=(const ScalarFloat& rhs) {
     data_ = rhs.data_;
     return *this;
   }
-  SimdFloat operator+(const float rhs) const {
-    return SimdFloat(_mm256_add_ps(data_, _mm256_set1_ps(rhs)));
+  ScalarFloat operator+(const float rhs) const {
+    return ScalarFloat(_mm256_add_ps(data_, _mm256_set1_ps(rhs)));
   }
-  SimdFloat operator-(const float rhs) const {
-    return SimdFloat(_mm256_sub_ps(data_, _mm256_set1_ps(rhs)));
+  ScalarFloat operator-(const float rhs) const {
+    return ScalarFloat(_mm256_sub_ps(data_, _mm256_set1_ps(rhs)));
   }
-  SimdFloat operator*(const float rhs) const {
-    return SimdFloat(_mm256_mul_ps(data_, _mm256_set1_ps(rhs)));
+  ScalarFloat operator*(const float rhs) const {
+    return ScalarFloat(_mm256_mul_ps(data_, _mm256_set1_ps(rhs)));
   }
-  SimdFloat operator/(const float rhs) const {
-    return SimdFloat(_mm256_div_ps(data_, _mm256_set1_ps(rhs)));
+  ScalarFloat operator/(const float rhs) const {
+    return ScalarFloat(_mm256_div_ps(data_, _mm256_set1_ps(rhs)));
   }
-  SimdFloat operator+(const SimdFloat& rhs) const {
-    return SimdFloat(_mm256_add_ps(data_, rhs.data_));
+  ScalarFloat operator+(const ScalarFloat& rhs) const {
+    return ScalarFloat(_mm256_add_ps(data_, rhs.data_));
   }
-  SimdFloat operator-(const SimdFloat& rhs) const {
-    return SimdFloat(_mm256_sub_ps(data_, rhs.data_));
+  ScalarFloat operator-(const ScalarFloat& rhs) const {
+    return ScalarFloat(_mm256_sub_ps(data_, rhs.data_));
   }
-  SimdFloat operator*(const SimdFloat& rhs) const {
-    return SimdFloat(_mm256_mul_ps(data_, rhs.data_));
+  ScalarFloat operator*(const ScalarFloat& rhs) const {
+    return ScalarFloat(_mm256_mul_ps(data_, rhs.data_));
   }
-  SimdFloat operator/(const SimdFloat& rhs) const {
-    return SimdFloat(_mm256_div_ps(data_, rhs.data_));
+  ScalarFloat operator/(const ScalarFloat& rhs) const {
+    return ScalarFloat(_mm256_div_ps(data_, rhs.data_));
   }
 
-  SimdFloat& operator+=(const SimdFloat& rhs) {
+  ScalarFloat& operator+=(const ScalarFloat& rhs) {
     data_ = _mm256_add_ps(data_, rhs.data_);
     return *this;
   }
-  SimdFloat& operator-=(const SimdFloat& rhs) {
+  ScalarFloat& operator-=(const ScalarFloat& rhs) {
     data_ = _mm256_sub_ps(data_, rhs.data_);
     return *this;
   }
-  SimdFloat& operator*=(const SimdFloat& rhs) {
+  ScalarFloat& operator*=(const ScalarFloat& rhs) {
     data_ = _mm256_mul_ps(data_, rhs.data_);
     return *this;
   }
@@ -118,55 +119,55 @@ class SimdFloat {
   __m256 data_;
 };
 
-class SimdDouble {
+class Scalar {
  public:
-  SimdDouble() { data_ = _mm256_setzero_pd(); }
-  explicit SimdDouble(const double scalar) { data_ = _mm256_set1_pd(scalar); }
-  explicit SimdDouble(const double n1, const double n2, const double n3,
-                      const double n4) {
+  Scalar() { data_ = _mm256_setzero_pd(); }
+  explicit Scalar(const double scalar) { data_ = _mm256_set1_pd(scalar); }
+  explicit Scalar(const double n1, const double n2, const double n3,
+                  const double n4) {
     data_ = _mm256_set_pd(n4, n3, n2, n1);
   }
-  explicit SimdDouble(const double* rhs) { data_ = _mm256_load_pd(rhs); }
-  SimdDouble(const __m256d& rhs) { data_ = rhs; }
-  SimdDouble(const SimdDouble& rhs) { data_ = rhs.data_; }
-  SimdDouble& operator=(const SimdDouble& rhs) {
+  explicit Scalar(const double* rhs) { data_ = _mm256_load_pd(rhs); }
+  Scalar(const __m256d& rhs) { data_ = rhs; }
+  Scalar(const Scalar& rhs) { data_ = rhs.data_; }
+  Scalar& operator=(const Scalar& rhs) {
     data_ = rhs.data_;
     return *this;
   }
-  SimdDouble operator+(const double rhs) const {
-    return SimdDouble(_mm256_add_pd(data_, _mm256_set1_pd(rhs)));
+  Scalar operator+(const double rhs) const {
+    return Scalar(_mm256_add_pd(data_, _mm256_set1_pd(rhs)));
   }
-  SimdDouble operator-(const double rhs) const {
-    return SimdDouble(_mm256_sub_pd(data_, _mm256_set1_pd(rhs)));
+  Scalar operator-(const double rhs) const {
+    return Scalar(_mm256_sub_pd(data_, _mm256_set1_pd(rhs)));
   }
-  SimdDouble operator*(const double rhs) const {
-    return SimdDouble(_mm256_mul_pd(data_, _mm256_set1_pd(rhs)));
+  Scalar operator*(const double rhs) const {
+    return Scalar(_mm256_mul_pd(data_, _mm256_set1_pd(rhs)));
   }
-  SimdDouble operator/(const double rhs) const {
-    return SimdDouble(_mm256_div_pd(data_, _mm256_set1_pd(rhs)));
+  Scalar operator/(const double rhs) const {
+    return Scalar(_mm256_div_pd(data_, _mm256_set1_pd(rhs)));
   }
-  SimdDouble operator+(const SimdDouble& rhs) const {
-    return SimdDouble(_mm256_add_pd(data_, rhs.data_));
+  Scalar operator+(const Scalar& rhs) const {
+    return Scalar(_mm256_add_pd(data_, rhs.data_));
   }
-  SimdDouble operator-(const SimdDouble& rhs) const {
-    return SimdDouble(_mm256_sub_pd(data_, rhs.data_));
+  Scalar operator-(const Scalar& rhs) const {
+    return Scalar(_mm256_sub_pd(data_, rhs.data_));
   }
-  SimdDouble operator*(const SimdDouble& rhs) const {
-    return SimdDouble(_mm256_mul_pd(data_, rhs.data_));
+  Scalar operator*(const Scalar& rhs) const {
+    return Scalar(_mm256_mul_pd(data_, rhs.data_));
   }
-  SimdDouble operator/(const SimdDouble& rhs) const {
-    return SimdDouble(_mm256_div_pd(data_, rhs.data_));
+  Scalar operator/(const Scalar& rhs) const {
+    return Scalar(_mm256_div_pd(data_, rhs.data_));
   }
 
-  SimdDouble& operator+=(const SimdDouble& rhs) {
+  Scalar& operator+=(const Scalar& rhs) {
     data_ = _mm256_add_pd(data_, rhs.data_);
     return *this;
   }
-  SimdDouble& operator-=(const SimdDouble& rhs) {
+  Scalar& operator-=(const Scalar& rhs) {
     data_ = _mm256_sub_pd(data_, rhs.data_);
     return *this;
   }
-  SimdDouble& operator*=(const SimdDouble& rhs) {
+  Scalar& operator*=(const Scalar& rhs) {
     data_ = _mm256_mul_pd(data_, rhs.data_);
     return *this;
   }
@@ -179,6 +180,213 @@ class SimdDouble {
   __m256d data_;
 };
 
+/// @brief Vector of Simd data. Consider four 3D vectors, v1, v2, v3, v4.
+/// data_[0] = SimdDouble(v1.x(), v2.x(), v3.x(), v4.x());
+/// data_[1] = SimdDouble(v1.y(), v2.y(), v3.y(), v4.y());
+/// data_[2] = SimdDouble(v1.z(), v2.z(), v3.z(), v4.z());
+
+/// @tparam kRow
+template <int kRow>
+class Vector {
+  const size_t kDataStep{4};
+  using EigenVec = Eigen::Matrix<double, kRow, 1>;
+
+ public:
+  Vector() {
+    for (int row = 0; row < kRow; ++row) data_[row] = _mm256_set1_pd(0.0);
+  }
+  ~Vector() {}
+
+  explicit Vector(const EigenVec& single_vector) {
+    for (int row = 0; row < kRow; ++row)
+      data_[row] = Scalar(single_vector(row));
+  }
+  explicit Vector(const std::vector<EigenVec>& multi_vectors) {
+    if (multi_vectors.size() != kDataStep)
+      throw std::runtime_error("Wrong number of data");
+    for (int row = 0; row < kRow; ++row) {
+      double buf[kDataStep];
+      for (int k = 0; k < kDataStep; ++k) buf[k] = multi_vectors[k](row);
+      data_[row] = Scalar(buf);
+    }
+  }
+
+  Vector(const Vector& rhs) {
+    for (int row = 0; row < kRow; ++row) data_[row] = rhs.data_[row];
+  }
+  Vector& operator=(const Vector& rhs) {
+    for (int row = 0; row < kRow; ++row) data_[row] = rhs.data_[row];
+    return *this;
+  }
+
+  Vector operator+(const Vector& rhs) const {
+    Vector res;
+    for (int row = 0; row < kRow; ++row)
+      res.data_[row] = data_[row] + rhs.data_[row];
+    return res;
+  }
+  Vector operator-(const Vector& rhs) const {
+    Vector res;
+    for (int row = 0; row < kRow; ++row)
+      res.data_[row] = data_[row] + rhs.data_[row];
+    return res;
+  }
+  Vector operator*(const double scalar) const {
+    Vector res;
+    for (int row = 0; row < kRow; ++row) res.data_[row] = data_[row] * scalar;
+    return res;
+  }
+  Vector& operator+=(const Vector& rhs) {
+    for (int row = 0; row < kRow; ++row)
+      data_[row] = data_[row] + rhs.data_[row];
+    return *this;
+  }
+  Vector& operator-=(const Vector& rhs) {
+    for (int row = 0; row < kRow; ++row)
+      data_[row] = data_[row] + rhs.data_[row];
+    return *this;
+  }
+  Vector& operator-=(const double scalar) {
+    for (int row = 0; row < kRow; ++row) data_[row] *= scalar;
+    return *this;
+  }
+
+  Scalar GetNorm() const {
+    Scalar norm_values;
+    for (int row = 0; row < kRow; ++row)
+      norm_values += (data_[row] * data_[row]);
+    return norm_values;
+  }
+
+  Scalar ComputeDot(const Vector& rhs) const {
+    Scalar res;
+    for (int row = 0; row < kRow; ++row) res += (data_[row] * rhs.data_[row]);
+    return res;
+  }
+
+  void StoreData(std::vector<EigenVec>* multi_vectors) const {
+    if (multi_vectors->size() != kDataStep) multi_vectors->resize(kDataStep);
+    for (int row = 0; row < kRow; ++row) {
+      double buf[kDataStep];
+      data_[row].StoreData(buf);
+      for (size_t k = 0; k < kDataStep; ++k) multi_vectors->at(k)(row) = buf[k];
+    }
+  }
+
+ private:
+  Scalar data_[kRow];
+  template <int kMatRow, int kMatCol>
+  friend class Matrix;
+};
+
+/// @brief Matrix of SIMD data
+/// @tparam kRow Matrix row size
+/// @tparam kCol Matrix column size
+template <int kRow, int kCol>
+class Matrix {
+  const size_t kDataStep{4};
+  using EigenMat = Eigen::Matrix<double, kRow, kCol>;
+
+ public:
+  Matrix() {
+    for (int row = 0; row < kRow; ++row)
+      for (int col = 0; col < kCol; ++col)
+        data_[row][col] = _mm256_setzero_pd();
+  }
+  ~Matrix() {}
+
+  explicit Matrix(const EigenMat& single_matrix) {
+    for (int row = 0; row < kRow; ++row)
+      for (int col = 0; col < kCol; ++col)
+        data_[row][col] = Scalar(single_matrix(row, col));
+  }
+  explicit Matrix(const std::vector<EigenMat>& multi_matrices) {
+    if (multi_matrices.size() != kDataStep)
+      throw std::runtime_error("Wrong number of data");
+    for (int row = 0; row < kRow; ++row) {
+      for (int col = 0; col < kCol; ++col) {
+        double buf[kDataStep];
+        for (int k = 0; k < kDataStep; ++k)
+          buf[k] = multi_matrices[k](row, col);
+        data_[row][col] = Scalar(buf);
+      }
+    }
+  }
+  Matrix(const Matrix& rhs) {
+    for (int row = 0; row < kRow; ++row)
+      for (int col = 0; col < kCol; ++col)
+        data_[row][col] = rhs.data_[row][col];
+  }
+  Matrix& operator=(const Matrix& rhs) {
+    for (int row = 0; row < kRow; ++row)
+      for (int col = 0; col < kCol; ++col)
+        data_[row][col] = rhs.data_[row][col];
+    return *this;
+  }
+
+  Matrix operator+(const Matrix& rhs) const {
+    Matrix res;
+    for (int row = 0; row < kRow; ++row)
+      for (int col = 0; col < kCol; ++col)
+        res.data_[row][col] = data_[row][col] + rhs.data_[row][col];
+    return res;
+  }
+  Matrix operator-(const Matrix& rhs) const {
+    Matrix res;
+    for (int row = 0; row < kRow; ++row)
+      for (int col = 0; col < kCol; ++col)
+        res.data_[row][col] = data_[row][col] - rhs.data_[row][col];
+    return res;
+  }
+  Matrix operator*(const double scalar) const {
+    Matrix res;
+    for (int row = 0; row < kRow; ++row)
+      for (int col = 0; col < kCol; ++col)
+        res.data_[row][col] = data_[row][col] * scalar;
+    return res;
+  }
+  template <int kRhsCol>
+  Matrix<kRow, kRhsCol> operator*(const Matrix<kCol, kRhsCol>& matrix) const {
+    Matrix<kRow, kRhsCol> res;
+    return res;
+  }
+  Vector<kRow> operator*(const Vector<kCol>& vector) const {
+    Vector<kRow> res;
+    for (int row = 0; row < kRow; ++row)
+      for (int col = 0; col < kCol; ++col)
+        res.data_[row] += data_[row][col] * vector.data_[col];
+    return res;
+  }
+  Matrix& operator+=(const Matrix& rhs) {
+    for (int row = 0; row < kRow; ++row)
+      for (int col = 0; col < kCol; ++col)
+        data_[row][col] = data_[row][col] + rhs.data_[row][col];
+    return *this;
+  }
+  Matrix& operator-=(const Matrix& rhs) {
+    for (int row = 0; row < kRow; ++row)
+      for (int col = 0; col < kCol; ++col)
+        data_[row][col] = data_[row][col] - rhs.data_[row][col];
+    return *this;
+  }
+
+  void StoreData(std::vector<EigenMat>* multi_matrices) const {
+    if (multi_matrices->size() != kDataStep) multi_matrices->resize(kDataStep);
+    for (int row = 0; row < kRow; ++row) {
+      for (int col = 0; col < kCol; ++col) {
+        double buf[kDataStep];
+        data_[row][col].StoreData(buf);
+        for (int k = 0; k < kDataStep; ++k)
+          multi_matrices->at(k)(row, col) = buf[k];
+      }
+    }
+  }
+
+ private:
+  Scalar data_[kRow][kCol];
+};
+
+}  // namespace simd
 }  // namespace nonlinear_optimizer
 
 #endif
