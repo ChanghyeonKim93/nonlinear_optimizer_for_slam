@@ -26,8 +26,11 @@ bool MahalanobisDistanceMinimizerAnalytic::Solve(
   for (; iteration < max_iteration; ++iteration) {
     Mat6x6 hessian{Mat6x6::Zero()};
     Vec6 gradient{Vec6::Zero()};
+
+    const size_t stride = 4;
+    const int num_stride = correspondences.size() / stride;
     double cost = 0.0;
-    for (size_t i = 0; i < correspondences.size(); ++i) {
+    for (size_t i = 0; i < stride * num_stride; ++i) {
       const auto& corr = correspondences.at(i);
 
       Mat3x6 jacobian{Mat3x6::Zero()};
@@ -94,8 +97,8 @@ bool MahalanobisDistanceMinimizerAnalytic::Solve(
     lambda = std::clamp(lambda, min_lambda, max_lambda);
     previous_cost = cost;
   }
-
-  std::cerr << "COST: " << previous_cost << std::endl;
+  std::cerr << "COST: " << previous_cost << ", iter: " << iteration
+            << std::endl;
 
   pose->translation() = optimized_translation;
   pose->linear() = optimized_orientation.toRotationMatrix();

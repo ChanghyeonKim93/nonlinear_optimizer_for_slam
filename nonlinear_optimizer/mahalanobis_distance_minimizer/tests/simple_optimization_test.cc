@@ -99,7 +99,7 @@ int main(int, char**) {
   std::cerr << "Start OptimizePoseAnalyticSIMD" << std::endl;
   const auto opt_pose_analytic_simd =
       OptimizePoseAnalyticSimd(ndt_map, local_points, initial_pose);
-  std::cerr << "Start OptimizePoseAnalyticSIMDNaive" << std::endl;
+  std::cerr << "Start OptimizePoseAnalyticSimdUsingHelper" << std::endl;
   const auto opt_pose_analytic_simd_using_helper =
       OptimizePoseAnalyticSimdUsingHelper(ndt_map, local_points, initial_pose);
 
