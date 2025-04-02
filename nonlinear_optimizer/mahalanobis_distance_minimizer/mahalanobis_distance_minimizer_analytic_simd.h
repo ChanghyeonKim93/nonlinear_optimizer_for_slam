@@ -19,20 +19,14 @@ class MahalanobisDistanceMinimizerAnalyticSIMD
 
   bool Solve(const std::vector<Correspondence>& correspondences,
              Pose* pose) final;
+  bool SolveFloat(const std::vector<Correspondence>& correspondences,
+                  Pose* pose);
   bool SolveUsingHelper(const std::vector<Correspondence>& correspondences,
                         Pose* pose);
+  bool SolveUsingHelperFloat(const std::vector<Correspondence>& correspondences,
+                             Pose* pose);
 
  private:
-  void ComputeJacobianAndResidual(const Mat3x3& rotation,
-                                  const Vec3& translation,
-                                  const Correspondence& corr, Mat3x6* jacobian,
-                                  Vec3* residual);
-  void ComputeHessianOnlyUpperTriangle(const Mat3x6& jacobian,
-                                       Mat6x6* local_hessian);
-  void MultiplyWeightOnlyUpperTriangle(const double weight,
-                                       Mat6x6* local_hessian);
-  void AddHessianOnlyUpperTriangle(const Mat6x6& local_hessian,
-                                   Mat6x6* global_hessian);
   void ReflectHessian(Mat6x6* hessian);
   Orientation ComputeQuaternion(const Vec3& w);
 };

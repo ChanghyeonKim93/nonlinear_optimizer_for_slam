@@ -114,9 +114,9 @@ void TestFloat(const std::vector<float>& d1, const std::vector<float>& d2,
     d2_ptr[5] = d2[i + 5];
     d2_ptr[6] = d2[i + 6];
     d2_ptr[7] = d2[i + 7];
-    simd::ScalarFloat s1(d1_ptr);
-    simd::ScalarFloat s2(d2_ptr);
-    simd::ScalarFloat rs = COMPUTE_COMPLEX_ARITHMETIC(s1, s2);
+    simd::ScalarF s1(d1_ptr);
+    simd::ScalarF s2(d2_ptr);
+    simd::ScalarF rs = COMPUTE_COMPLEX_ARITHMETIC(s1, s2);
     rs.StoreData(res);
     rd->push_back(res[0]);
     rd->push_back(res[1]);

@@ -49,9 +49,15 @@ Pose OptimizePoseAnalytic(const NdtMap& ndt_map,
 Pose OptimizePoseAnalyticSimd(const NdtMap& ndt_map,
                               const std::vector<Vec3>& local_points,
                               const Pose& initial_pose);
+Pose OptimizePoseAnalyticSimdFloat(const NdtMap& ndt_map,
+                                   const std::vector<Vec3>& local_points,
+                                   const Pose& initial_pose);
 Pose OptimizePoseAnalyticSimdUsingHelper(const NdtMap& ndt_map,
                                          const std::vector<Vec3>& local_points,
                                          const Pose& initial_pose);
+Pose OptimizePoseAnalyticSimdUsingHelperFloat(
+    const NdtMap& ndt_map, const std::vector<Vec3>& local_points,
+    const Pose& initial_pose);
 
 }  // namespace mahalanobis_distance_minimizer
 }  // namespace nonlinear_optimizer
@@ -99,9 +105,16 @@ int main(int, char**) {
   std::cerr << "Start OptimizePoseAnalyticSIMD" << std::endl;
   const auto opt_pose_analytic_simd =
       OptimizePoseAnalyticSimd(ndt_map, local_points, initial_pose);
+  std::cerr << "Start OptimizePoseAnalyticSIMDFloat" << std::endl;
+  const auto opt_pose_analytic_simd_float =
+      OptimizePoseAnalyticSimdFloat(ndt_map, local_points, initial_pose);
   std::cerr << "Start OptimizePoseAnalyticSimdUsingHelper" << std::endl;
   const auto opt_pose_analytic_simd_using_helper =
       OptimizePoseAnalyticSimdUsingHelper(ndt_map, local_points, initial_pose);
+  std::cerr << "Start OptimizePoseAnalyticSimdUsingHelperFloat" << std::endl;
+  const auto opt_pose_analytic_simd_using_helper_float =
+      OptimizePoseAnalyticSimdUsingHelperFloat(ndt_map, local_points,
+                                               initial_pose);
 
   std::cerr << "Pose (ceres redundant): "
             << opt_pose_ceres_redundant.translation().transpose() << " "
@@ -130,6 +143,12 @@ int main(int, char**) {
                    .coeffs()
                    .transpose()
             << std::endl;
+  std::cerr << "Pose (analytic simd float): "
+            << opt_pose_analytic_simd_float.translation().transpose() << " "
+            << Eigen::Quaterniond(opt_pose_analytic_simd_float.linear())
+                   .coeffs()
+                   .transpose()
+            << std::endl;
   std::cerr << "Pose (analytic simd using helper): "
             << opt_pose_analytic_simd_using_helper.translation().transpose()
             << " "
@@ -137,6 +156,14 @@ int main(int, char**) {
                    .coeffs()
                    .transpose()
             << std::endl;
+  std::cerr
+      << "Pose (analytic simd using helper float): "
+      << opt_pose_analytic_simd_using_helper_float.translation().transpose()
+      << " "
+      << Eigen::Quaterniond(opt_pose_analytic_simd_using_helper_float.linear())
+             .coeffs()
+             .transpose()
+      << std::endl;
   std::cerr << "True pose: " << true_pose.translation().transpose() << " "
             << Eigen::Quaterniond(true_pose.linear()).coeffs().transpose()
             << std::endl;
@@ -518,6 +545,40 @@ Pose OptimizePoseAnalyticSimd(const NdtMap& ndt_map,
   return optimized_pose;
 }
 
+Pose OptimizePoseAnalyticSimdFloat(const NdtMap& ndt_map,
+                                   const std::vector<Vec3>& local_points,
+                                   const Pose& initial_pose) {
+  CHECK_EXEC_TIME_FROM_HERE
+
+  Pose optimized_pose = initial_pose;
+  Pose last_optimized_pose = optimized_pose;
+  int outer_iter = 0;
+  for (; outer_iter < 10; ++outer_iter) {
+    const auto correspondences =
+        MatchPointCloud(ndt_map, local_points, optimized_pose);
+
+    std::unique_ptr<nonlinear_optimizer::mahalanobis_distance_minimizer::
+                        MahalanobisDistanceMinimizerAnalyticSIMD>
+        optim = std::make_unique<
+            nonlinear_optimizer::mahalanobis_distance_minimizer::
+                MahalanobisDistanceMinimizerAnalyticSIMD>();
+    optim->SetLossFunction(
+        std::make_shared<nonlinear_optimizer::ExponentialLossFunction>(1.0,
+                                                                       1.0));
+    optim->SolveFloat(correspondences, &optimized_pose);
+
+    Pose pose_diff = optimized_pose.inverse() * last_optimized_pose;
+    if (pose_diff.translation().norm() < 1e-5 &&
+        Orientation(pose_diff.linear()).vec().norm() < 1e-5) {
+      break;
+    }
+    last_optimized_pose = optimized_pose;
+  }
+  std::cerr << "outer_iter: " << outer_iter << std::endl;
+
+  return optimized_pose;
+}
+
 Pose OptimizePoseAnalyticSimdUsingHelper(const NdtMap& ndt_map,
                                          const std::vector<Vec3>& local_points,
                                          const Pose& initial_pose) {
@@ -539,6 +600,40 @@ Pose OptimizePoseAnalyticSimdUsingHelper(const NdtMap& ndt_map,
         std::make_shared<nonlinear_optimizer::ExponentialLossFunction>(1.0,
                                                                        1.0));
     optim->SolveUsingHelper(correspondences, &optimized_pose);
+
+    Pose pose_diff = optimized_pose.inverse() * last_optimized_pose;
+    if (pose_diff.translation().norm() < 1e-5 &&
+        Orientation(pose_diff.linear()).vec().norm() < 1e-5) {
+      break;
+    }
+    last_optimized_pose = optimized_pose;
+  }
+  std::cerr << "outer_iter: " << outer_iter << std::endl;
+
+  return optimized_pose;
+}
+
+Pose OptimizePoseAnalyticSimdUsingHelperFloat(
+    const NdtMap& ndt_map, const std::vector<Vec3>& local_points,
+    const Pose& initial_pose) {
+  CHECK_EXEC_TIME_FROM_HERE
+
+  Pose optimized_pose = initial_pose;
+  Pose last_optimized_pose = optimized_pose;
+  int outer_iter = 0;
+  for (; outer_iter < 10; ++outer_iter) {
+    const auto correspondences =
+        MatchPointCloud(ndt_map, local_points, optimized_pose);
+
+    std::unique_ptr<nonlinear_optimizer::mahalanobis_distance_minimizer::
+                        MahalanobisDistanceMinimizerAnalyticSIMD>
+        optim = std::make_unique<
+            nonlinear_optimizer::mahalanobis_distance_minimizer::
+                MahalanobisDistanceMinimizerAnalyticSIMD>();
+    optim->SetLossFunction(
+        std::make_shared<nonlinear_optimizer::ExponentialLossFunction>(1.0,
+                                                                       1.0));
+    optim->SolveUsingHelperFloat(correspondences, &optimized_pose);
 
     Pose pose_diff = optimized_pose.inverse() * last_optimized_pose;
     if (pose_diff.translation().norm() < 1e-5 &&
