@@ -20,8 +20,6 @@ TEST_F(SimdHelperTest, SimdDataLoadAndSaveTest) {
   double buf[4];
   v__.StoreData(buf);
   for (int k = 0; k < 4; ++k) EXPECT_DOUBLE_EQ(value[k], buf[k]);
-
-  // SIMD vector data
 }
 
 TEST_F(SimdHelperTest, MatrixVectorMultiplyTest) {
@@ -50,9 +48,35 @@ TEST_F(SimdHelperTest, MatrixVectorMultiplyTest) {
   std::vector<Eigen::Vector3d> res;
   Mv__.StoreData(&res);
   for (int i = 0; i < 3; ++i)
-    for (int k = 0; k < 4; ++k) {
-      EXPECT_DOUBLE_EQ(res_true[k](i), res[k](i));
-    }
+    for (int k = 0; k < 4; ++k) EXPECT_DOUBLE_EQ(res_true[k](i), res[k](i));
+}
+
+TEST_F(SimdHelperTest, MemoryAlignmentTest) {
+  const size_t alignment = 32;
+  const size_t num_data = 10000;
+
+  float* aligned_float = nullptr;
+  aligned_float = reinterpret_cast<float*>(
+      simd::GetAlignedMemory(num_data * sizeof(float)));
+  EXPECT_NE(aligned_float, nullptr);
+  bool is_aligned =
+      (reinterpret_cast<std::uintptr_t>(aligned_float) % alignment == 0);
+  EXPECT_TRUE(is_aligned);
+
+  double* aligned_double = nullptr;
+  aligned_double = reinterpret_cast<double*>(
+      simd::GetAlignedMemory(num_data * sizeof(double)));
+  EXPECT_NE(aligned_double, nullptr);
+  is_aligned =
+      (reinterpret_cast<std::uintptr_t>(aligned_double) % alignment == 0);
+  EXPECT_TRUE(is_aligned);
+
+  int* aligned_int = nullptr;
+  aligned_int =
+      reinterpret_cast<int*>(simd::GetAlignedMemory(num_data * sizeof(int)));
+  EXPECT_NE(aligned_int, nullptr);
+  is_aligned = (reinterpret_cast<std::uintptr_t>(aligned_int) % alignment == 0);
+  EXPECT_TRUE(is_aligned);
 }
 
 }  // namespace nonlinear_optimizer
