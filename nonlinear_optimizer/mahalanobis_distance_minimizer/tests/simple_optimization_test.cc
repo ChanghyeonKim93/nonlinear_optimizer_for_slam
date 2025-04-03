@@ -389,7 +389,7 @@ Pose OptimizePoseOriginal(const NdtMap& ndt_map,
 
   Pose optimized_pose{Pose::Identity()};
   int outer_iter = 0;
-  for (; outer_iter < 1; ++outer_iter) {
+  for (; outer_iter < 10; ++outer_iter) {
     Pose last_optimized_pose{Pose::Identity()};
     last_optimized_pose.translation() =
         Vec3(optimized_translation[0], optimized_translation[1],
@@ -447,7 +447,7 @@ Pose OptimizePoseRedundantEach(const NdtMap& ndt_map,
   Pose optimized_pose = initial_pose;
   Pose last_optimized_pose = optimized_pose;
   int outer_iter = 0;
-  for (; outer_iter < 1; ++outer_iter) {
+  for (; outer_iter < 10; ++outer_iter) {
     const auto correspondences =
         MatchPointCloud(ndt_map, local_points, optimized_pose);
 
@@ -479,7 +479,7 @@ Pose OptimizePoseSimplified(const NdtMap& ndt_map,
   Pose optimized_pose = initial_pose;
   Pose last_optimized_pose = optimized_pose;
   int outer_iter = 0;
-  for (; outer_iter < 1; ++outer_iter) {
+  for (; outer_iter < 10; ++outer_iter) {
     const auto correspondences =
         MatchPointCloud(ndt_map, local_points, optimized_pose);
 
@@ -511,7 +511,7 @@ Pose OptimizePoseAnalytic(const NdtMap& ndt_map,
   Pose optimized_pose = initial_pose;
   Pose last_optimized_pose = optimized_pose;
   int outer_iter = 0;
-  for (; outer_iter < 1; ++outer_iter) {
+  for (; outer_iter < 10; ++outer_iter) {
     const auto correspondences =
         MatchPointCloud(ndt_map, local_points, optimized_pose);
 
@@ -545,7 +545,7 @@ Pose OptimizePoseAnalyticSimd(const NdtMap& ndt_map,
   Pose optimized_pose = initial_pose;
   Pose last_optimized_pose = optimized_pose;
   int outer_iter = 0;
-  for (; outer_iter < 1; ++outer_iter) {
+  for (; outer_iter < 10; ++outer_iter) {
     const auto correspondences =
         MatchPointCloud(ndt_map, local_points, optimized_pose);
 
@@ -579,7 +579,7 @@ Pose OptimizePoseAnalyticSimdFloat(const NdtMap& ndt_map,
   Pose optimized_pose = initial_pose;
   Pose last_optimized_pose = optimized_pose;
   int outer_iter = 0;
-  for (; outer_iter < 1; ++outer_iter) {
+  for (; outer_iter < 10; ++outer_iter) {
     const auto correspondences =
         MatchPointCloud(ndt_map, local_points, optimized_pose);
 
@@ -613,7 +613,7 @@ Pose OptimizePoseAnalyticSimdFloatFAST1(const NdtMap& ndt_map,
   Pose optimized_pose = initial_pose;
   Pose last_optimized_pose = optimized_pose;
   int outer_iter = 0;
-  for (; outer_iter < 1; ++outer_iter) {
+  for (; outer_iter < 10; ++outer_iter) {
     const auto correspondences =
         MatchPointCloud(ndt_map, local_points, optimized_pose);
 
@@ -647,7 +647,7 @@ Pose OptimizePoseAnalyticSimdFloatFAST2(const NdtMap& ndt_map,
   Pose optimized_pose = initial_pose;
   Pose last_optimized_pose = optimized_pose;
   int outer_iter = 0;
-  for (; outer_iter < 1; ++outer_iter) {
+  for (; outer_iter < 10; ++outer_iter) {
     const auto correspondences =
         MatchPointCloud(ndt_map, local_points, optimized_pose);
 
@@ -681,7 +681,7 @@ Pose OptimizePoseAnalyticSimdUsingHelper(const NdtMap& ndt_map,
   Pose optimized_pose = initial_pose;
   Pose last_optimized_pose = optimized_pose;
   int outer_iter = 0;
-  for (; outer_iter < 1; ++outer_iter) {
+  for (; outer_iter < 10; ++outer_iter) {
     const auto correspondences =
         MatchPointCloud(ndt_map, local_points, optimized_pose);
 
@@ -715,7 +715,7 @@ Pose OptimizePoseAnalyticSimdUsingHelperFloat(
   Pose optimized_pose = initial_pose;
   Pose last_optimized_pose = optimized_pose;
   int outer_iter = 0;
-  for (; outer_iter < 1; ++outer_iter) {
+  for (; outer_iter < 10; ++outer_iter) {
     const auto correspondences =
         MatchPointCloud(ndt_map, local_points, optimized_pose);
 

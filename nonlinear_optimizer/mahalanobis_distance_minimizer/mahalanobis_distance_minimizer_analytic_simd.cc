@@ -872,9 +872,6 @@ bool MahalanobisDistanceMinimizerAnalyticSIMD::SolveFloat_FAST1(
     const Mat3x3f opt_R = optimized_orientation.toRotationMatrix();
     const Vec3f opt_t = optimized_translation;
 
-    std::cerr << iteration << " optR,t :\n";
-    std::cerr << opt_R << "\n" << opt_t.transpose() << std::endl;
-
     simd::ScalarF R__[3][3];
     simd::ScalarF t__[3];
     for (int row = 0; row < 3; ++row) {
@@ -923,6 +920,7 @@ bool MahalanobisDistanceMinimizerAnalyticSIMD::SolveFloat_FAST1(
     e__[0] = pw__[0] - mu__[0];
     e__[1] = pw__[1] - mu__[1];
     e__[2] = pw__[2] - mu__[2];
+
     // r = sqrt_info * e
     simd::ScalarF r__[3];
     r__[0] = sqrt_info__[0][0] * e__[0] + sqrt_info__[0][1] * e__[1] + sqrt_info__[0][2] * e__[2];
@@ -1023,19 +1021,12 @@ bool MahalanobisDistanceMinimizerAnalyticSIMD::SolveFloat_FAST1(
     // Compute the step
     const Vec6 update_step = hessian.ldlt().solve(-gradient);
 
-    std::cerr << "G H : " << gradient.transpose() << std::endl;
-    std::cerr << cost << std::endl;
-    std::cerr << hessian << std::endl;
-    std::cerr << update_step.transpose() << std::endl;
-
     // Update the pose
     const Vec3 delta_t = update_step.block<3, 1>(0, 0);
     const Vec3 delta_R = update_step.block<3, 1>(3, 0);
     optimized_translation += delta_t.cast<float>();
     optimized_orientation *= ComputeQuaternion(delta_R).cast<float>();
     optimized_orientation.normalize();
-    std::cerr << optimized_translation.transpose() << std::endl;
-    std::cerr << optimized_orientation.coeffs().transpose() << std::endl;
 
     // Check convergence
     if (update_step.norm() < 1e-7) {
@@ -1100,8 +1091,6 @@ bool MahalanobisDistanceMinimizerAnalyticSIMD::SolveFloat_FAST2(
   for (; iteration < max_iteration; ++iteration) {
     const Mat3x3f opt_R = optimized_orientation.toRotationMatrix();
     const Vec3f opt_t = optimized_translation;
-    std::cerr << iteration << " optR,t (FAST2):\n";
-    std::cerr << opt_R << "\n" << opt_t.transpose() << std::endl;
 
     __m256 R__[3][3];
     __m256 t__[3];
@@ -1155,9 +1144,12 @@ bool MahalanobisDistanceMinimizerAnalyticSIMD::SolveFloat_FAST2(
       // clang-format off
       // pw = R*p + t
       __m256 pw__[3];
-      pw__[0] = _mm256_fmadd_ps(R__[0][0], p__[0], _mm256_fmadd_ps(R__[0][1], p__[1], _mm256_mul_ps(R__[0][2],p__[2])));
-      pw__[1] = _mm256_fmadd_ps(R__[1][0], p__[0], _mm256_fmadd_ps(R__[1][1], p__[1], _mm256_mul_ps(R__[1][2],p__[2])));
-      pw__[2] = _mm256_fmadd_ps(R__[2][0], p__[0], _mm256_fmadd_ps(R__[2][1], p__[1], _mm256_mul_ps(R__[2][2],p__[2])));
+      pw__[0] = _mm256_fmadd_ps(R__[0][0], p__[0], _mm256_fmadd_ps(R__[0][1], p__[1], _mm256_fmadd_ps(R__[0][2],p__[2], t__[0])));
+      pw__[1] = _mm256_fmadd_ps(R__[1][0], p__[0], _mm256_fmadd_ps(R__[1][1], p__[1], _mm256_fmadd_ps(R__[1][2],p__[2], t__[1])));
+      pw__[2] = _mm256_fmadd_ps(R__[2][0], p__[0], _mm256_fmadd_ps(R__[2][1], p__[1], _mm256_fmadd_ps(R__[2][2],p__[2], t__[2])));
+      // pw__[0] = _mm256_add_ps(_mm256_mul_ps(R__[0][0], p__[0]), _mm256_add_ps(_mm256_mul_ps(R__[0][1], p__[1]), _mm256_mul_ps(R__[0][2],p__[2])));
+      // pw__[1] = _mm256_add_ps(_mm256_mul_ps(R__[1][0], p__[0]), _mm256_add_ps(_mm256_mul_ps(R__[1][1], p__[1]), _mm256_mul_ps(R__[1][2],p__[2])));
+      // pw__[2] = _mm256_add_ps(_mm256_mul_ps(R__[2][0], p__[0]), _mm256_add_ps(_mm256_mul_ps(R__[2][1], p__[1]), _mm256_mul_ps(R__[2][2],p__[2])));
 
       // e_i = pw - mean
       __m256 e__[3];
@@ -1278,19 +1270,12 @@ bool MahalanobisDistanceMinimizerAnalyticSIMD::SolveFloat_FAST2(
     // Compute the step
     const Vec6 update_step = hessian.ldlt().solve(-gradient);
 
-    std::cerr << "G H (FAST2): " << gradient.transpose() << std::endl;
-    std::cerr << cost << std::endl;
-    std::cerr << hessian << std::endl;
-    std::cerr << update_step.transpose() << std::endl;
-
     // Update the pose
     const Vec3 delta_t = update_step.block<3, 1>(0, 0);
     const Vec3 delta_R = update_step.block<3, 1>(3, 0);
     optimized_translation += delta_t.cast<float>();
     optimized_orientation *= ComputeQuaternion(delta_R).cast<float>();
     optimized_orientation.normalize();
-    std::cerr << optimized_translation.transpose() << std::endl;
-    std::cerr << optimized_orientation.coeffs().transpose() << std::endl;
 
     // Check convergence
     if (update_step.norm() < 1e-7) {

@@ -133,13 +133,17 @@ class ScalarF {
   void StoreData(float* data) const { _mm256_store_ps(data, data_); }
   friend std::ostream& operator<<(std::ostream& outputStream,
                                   const ScalarF& scalar) {
-    float multi_scalars[4];
+    float multi_scalars[8];
     scalar.StoreData(multi_scalars);
     std::cout << "[["
               << "[" << multi_scalars[0] << "],\n"
               << "[" << multi_scalars[1] << "],\n"
               << "[" << multi_scalars[2] << "],\n"
-              << "[" << multi_scalars[3] << "]]" << std::endl;
+              << "[" << multi_scalars[3] << "],\n"
+              << "[" << multi_scalars[4] << "],\n"
+              << "[" << multi_scalars[5] << "],\n"
+              << "[" << multi_scalars[6] << "],\n"
+              << "[" << multi_scalars[7] << "]]" << std::endl;
     return outputStream;
   }
 
