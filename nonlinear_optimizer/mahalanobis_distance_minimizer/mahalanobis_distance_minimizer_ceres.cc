@@ -2,6 +2,7 @@
 
 #include "ceres/ceres.h"
 
+#include "nonlinear_optimizer/ceres_loss_function.h"
 #include "nonlinear_optimizer/mahalanobis_distance_minimizer/ceres_cost_functor.h"
 
 namespace nonlinear_optimizer {
