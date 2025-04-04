@@ -368,48 +368,18 @@ class MatrixF {
   inline MatrixF<kRow, kRhsCol> operator*(
       const MatrixF<kCol, kRhsCol>& matrix) const {
     MatrixF<kRow, kRhsCol> res;
-    if (kRow == 3 && kCol == 3 && kRhsCol == 3) {
-      res(0, 0) += (data_[0][0] * matrix(0, 0) + data_[0][1] * matrix(1, 0) +
-                    data_[0][2] * matrix(2, 0));
-      res(0, 1) += (data_[0][0] * matrix(0, 1) + data_[0][1] * matrix(1, 1) +
-                    data_[0][2] * matrix(2, 1));
-      res(0, 2) += (data_[0][0] * matrix(0, 2) + data_[0][1] * matrix(1, 2) +
-                    data_[0][2] * matrix(2, 2));
-      res(1, 0) += (data_[1][0] * matrix(0, 0) + data_[1][1] * matrix(1, 0) +
-                    data_[1][2] * matrix(2, 0));
-      res(1, 1) += (data_[1][0] * matrix(0, 1) + data_[1][1] * matrix(1, 1) +
-                    data_[1][2] * matrix(2, 1));
-      res(1, 2) += (data_[1][0] * matrix(0, 2) + data_[1][1] * matrix(1, 2) +
-                    data_[1][2] * matrix(2, 2));
-      res(2, 0) += (data_[2][0] * matrix(0, 0) + data_[2][1] * matrix(1, 0) +
-                    data_[2][2] * matrix(2, 0));
-      res(2, 1) += (data_[2][0] * matrix(0, 1) + data_[2][1] * matrix(1, 1) +
-                    data_[2][2] * matrix(2, 1));
-      res(2, 2) += (data_[2][0] * matrix(0, 2) + data_[2][1] * matrix(1, 2) +
-                    data_[2][2] * matrix(2, 2));
-    } else {
-      for (int row = 0; row < kRow; ++row)
-        for (int col = 0; col < kRhsCol; ++col)
-          for (int k = 0; k < kCol; ++k)
-            res(row, col) += data_[row][k] * matrix(k, col);
-    }
+    for (int row = 0; row < kRow; ++row)
+      for (int col = 0; col < kRhsCol; ++col)
+        for (int k = 0; k < kCol; ++k)
+          res(row, col) += data_[row][k] * matrix(k, col);
 
     return res;
   }
   inline VectorF<kRow> operator*(const VectorF<kCol>& vector) const {
     VectorF<kRow> res(Eigen::Matrix<float, kRow, 1>::Zero());
-    if (kRow == 3 && kCol == 3) {
-      res.data_[0] += data_[0][0] * vector(0) + data_[0][1] * vector(1) +
-                      data_[0][2] * vector(2);
-      res.data_[1] += data_[1][0] * vector(0) + data_[1][1] * vector(1) +
-                      data_[1][2] * vector(2);
-      res.data_[2] += data_[2][0] * vector(0) + data_[2][1] * vector(1) +
-                      data_[2][2] * vector(2);
-    } else {
-      for (int row = 0; row < kRow; ++row)
-        for (int col = 0; col < kCol; ++col)
-          res.data_[row] += data_[row][col] * vector(col);
-    }
+    for (int row = 0; row < kRow; ++row)
+      for (int col = 0; col < kCol; ++col)
+        res.data_[row] += data_[row][col] * vector(col);
     return res;
   }
   MatrixF& operator+=(const MatrixF& rhs) {

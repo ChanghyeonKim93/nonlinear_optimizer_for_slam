@@ -13,7 +13,7 @@ enum class MinimizerType {
 enum class LinearSolverType { kDenseQR = 0, kDenseCholesky, kSparseCholesky };
 
 struct Options {
-  int max_iterations{30};
+  int max_iterations{40};
   MinimizerType minimizer_type{MinimizerType::kGaussNewton};
   LinearSolverType linear_solver_type{LinearSolverType::kDenseQR};
   struct {

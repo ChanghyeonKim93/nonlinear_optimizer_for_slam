@@ -14,8 +14,8 @@ MahalanobisDistanceMinimizerAnalyticSIMD::
     ~MahalanobisDistanceMinimizerAnalyticSIMD() {}
 
 bool MahalanobisDistanceMinimizerAnalyticSIMD::SolveDoubleMatrix(
-    const std::vector<Correspondence>& correspondences, Pose* pose) {
-  constexpr int max_iteration = 30;
+    const Options& options, const std::vector<Correspondence>& correspondences,
+    Pose* pose) {
   constexpr double min_lambda = 1e-6;
   constexpr double max_lambda = 1e-2;
 
@@ -27,7 +27,7 @@ bool MahalanobisDistanceMinimizerAnalyticSIMD::SolveDoubleMatrix(
   double lambda = 0.001;
   double previous_cost = std::numeric_limits<double>::max();
   int iteration = 0;
-  for (; iteration < max_iteration; ++iteration) {
+  for (; iteration < options.max_iterations; ++iteration) {
     const Mat3x3 opt_R = optimized_orientation.toRotationMatrix();
     const Vec3 opt_t = optimized_translation;
     simd::Matrix<3, 3> R__(opt_R);
@@ -164,10 +164,10 @@ bool MahalanobisDistanceMinimizerAnalyticSIMD::SolveDoubleMatrix(
     optimized_orientation.normalize();
 
     // Check convergence
-    if (update_step.norm() < 1e-7) {
+    if (update_step.norm() < options.convergence_handle.parameter_tolerance) {
       break;
     }
-    if (gradient.norm() < 1e-7) {
+    if (gradient.norm() < options.convergence_handle.gradient_tolerance) {
       break;
     }
 
@@ -189,12 +189,12 @@ bool MahalanobisDistanceMinimizerAnalyticSIMD::SolveDoubleMatrix(
 }
 
 bool MahalanobisDistanceMinimizerAnalyticSIMD::SolveFloatMatrix(
-    const std::vector<Correspondence>& correspondences, Pose* pose) {
+    const Options& options, const std::vector<Correspondence>& correspondences,
+    Pose* pose) {
   using Vec3f = Eigen::Vector3f;
   using Mat3x3f = Eigen::Matrix3f;
   using Orientationf = Eigen::Quaternionf;
 
-  constexpr int max_iteration = 30;
   constexpr float min_lambda = 1e-6;
   constexpr float max_lambda = 1e-2;
 
@@ -206,7 +206,7 @@ bool MahalanobisDistanceMinimizerAnalyticSIMD::SolveFloatMatrix(
   float lambda = 0.001f;
   float previous_cost = std::numeric_limits<float>::max();
   int iteration = 0;
-  for (; iteration < max_iteration; ++iteration) {
+  for (; iteration < options.max_iterations; ++iteration) {
     const Mat3x3f opt_R = optimized_orientation.toRotationMatrix();
     const Vec3f opt_t = optimized_translation;
     simd::MatrixF<3, 3> R__(opt_R);
@@ -361,10 +361,10 @@ bool MahalanobisDistanceMinimizerAnalyticSIMD::SolveFloatMatrix(
     optimized_orientation.normalize();
 
     // Check convergence
-    if (update_step.norm() < 1e-7) {
+    if (update_step.norm() < options.convergence_handle.parameter_tolerance) {
       break;
     }
-    if (gradient.norm() < 1e-7) {
+    if (gradient.norm() < options.convergence_handle.gradient_tolerance) {
       break;
     }
 
@@ -386,7 +386,8 @@ bool MahalanobisDistanceMinimizerAnalyticSIMD::SolveFloatMatrix(
 }
 
 bool MahalanobisDistanceMinimizerAnalyticSIMD::SolveFloatMatrixAligned(
-    const std::vector<Correspondence>& correspondences, Pose* pose) {
+    const Options& options, const std::vector<Correspondence>& correspondences,
+    Pose* pose) {
   using Vec3f = Eigen::Vector3f;
   using Mat3x3f = Eigen::Matrix3f;
   using Orientationf = Eigen::Quaternionf;
@@ -407,7 +408,6 @@ bool MahalanobisDistanceMinimizerAnalyticSIMD::SolveFloatMatrixAligned(
     }
   }
 
-  constexpr int max_iteration = 30;
   constexpr float min_lambda = 1e-6;
   constexpr float max_lambda = 1e-2;
 
@@ -419,7 +419,7 @@ bool MahalanobisDistanceMinimizerAnalyticSIMD::SolveFloatMatrixAligned(
   float lambda = 0.001f;
   float previous_cost = std::numeric_limits<float>::max();
   int iteration = 0;
-  for (; iteration < max_iteration; ++iteration) {
+  for (; iteration < options.max_iterations; ++iteration) {
     const Mat3x3f opt_R = optimized_orientation.toRotationMatrix();
     const Vec3f opt_t = optimized_translation;
     simd::MatrixF<3, 3> R__(opt_R);
@@ -545,10 +545,10 @@ bool MahalanobisDistanceMinimizerAnalyticSIMD::SolveFloatMatrixAligned(
     optimized_orientation.normalize();
 
     // Check convergence
-    if (update_step.norm() < 1e-7) {
+    if (update_step.norm() < options.convergence_handle.parameter_tolerance) {
       break;
     }
-    if (gradient.norm() < 1e-7) {
+    if (gradient.norm() < options.convergence_handle.gradient_tolerance) {
       break;
     }
 
@@ -570,8 +570,8 @@ bool MahalanobisDistanceMinimizerAnalyticSIMD::SolveFloatMatrixAligned(
 }
 
 bool MahalanobisDistanceMinimizerAnalyticSIMD::Solve(
-    const std::vector<Correspondence>& correspondences, Pose* pose) {
-  constexpr int max_iteration = 30;
+    const Options& options, const std::vector<Correspondence>& correspondences,
+    Pose* pose) {
   constexpr double min_lambda = 1e-6;
   constexpr double max_lambda = 1e-2;
 
@@ -583,7 +583,7 @@ bool MahalanobisDistanceMinimizerAnalyticSIMD::Solve(
   double lambda = 0.001;
   double previous_cost = std::numeric_limits<double>::max();
   int iteration = 0;
-  for (; iteration < max_iteration; ++iteration) {
+  for (; iteration < options.max_iterations; ++iteration) {
     const Mat3x3 opt_R = optimized_orientation.toRotationMatrix();
     const Vec3 opt_t = optimized_translation;
 
@@ -765,10 +765,10 @@ bool MahalanobisDistanceMinimizerAnalyticSIMD::Solve(
     optimized_orientation.normalize();
 
     // Check convergence
-    if (update_step.norm() < 1e-7) {
+    if (update_step.norm() < options.convergence_handle.parameter_tolerance) {
       break;
     }
-    if (gradient.norm() < 1e-7) {
+    if (gradient.norm() < options.convergence_handle.gradient_tolerance) {
       break;
     }
 
@@ -791,11 +791,12 @@ bool MahalanobisDistanceMinimizerAnalyticSIMD::Solve(
 }
 
 bool MahalanobisDistanceMinimizerAnalyticSIMD::SolveFloat(
-    const std::vector<Correspondence>& correspondences, Pose* pose) {
+    const Options& options, const std::vector<Correspondence>& correspondences,
+    Pose* pose) {
   using Vec3f = Eigen::Vector3f;
   using Mat3x3f = Eigen::Matrix3f;
   using Orientationf = Eigen::Quaternionf;
-  constexpr int max_iteration = 30;
+
   constexpr float min_lambda = 1e-6f;
   constexpr float max_lambda = 1e-2f;
 
@@ -807,7 +808,7 @@ bool MahalanobisDistanceMinimizerAnalyticSIMD::SolveFloat(
   float lambda = 0.001;
   float previous_cost = std::numeric_limits<float>::max();
   int iteration = 0;
-  for (; iteration < max_iteration; ++iteration) {
+  for (; iteration < options.max_iterations; ++iteration) {
     const Mat3x3f opt_R = optimized_orientation.toRotationMatrix();
     const Vec3f opt_t = optimized_translation;
 
@@ -993,10 +994,10 @@ bool MahalanobisDistanceMinimizerAnalyticSIMD::SolveFloat(
     optimized_orientation.normalize();
 
     // Check convergence
-    if (update_step.norm() < 1e-7) {
+    if (update_step.norm() < options.convergence_handle.parameter_tolerance) {
       break;
     }
-    if (gradient.norm() < 1e-7) {
+    if (gradient.norm() < options.convergence_handle.gradient_tolerance) {
       break;
     }
 
@@ -1019,7 +1020,8 @@ bool MahalanobisDistanceMinimizerAnalyticSIMD::SolveFloat(
 }
 
 bool MahalanobisDistanceMinimizerAnalyticSIMD::SolveFloatAligned(
-    const std::vector<Correspondence>& correspondences, Pose* pose) {
+    const Options& options, const std::vector<Correspondence>& correspondences,
+    Pose* pose) {
   using Vec3f = Eigen::Vector3f;
   using Mat3x3f = Eigen::Matrix3f;
   using Orientationf = Eigen::Quaternionf;
@@ -1040,7 +1042,6 @@ bool MahalanobisDistanceMinimizerAnalyticSIMD::SolveFloatAligned(
     }
   }
 
-  constexpr int max_iteration = 30;
   constexpr float min_lambda = 1e-6f;
   constexpr float max_lambda = 1e-2f;
 
@@ -1052,7 +1053,7 @@ bool MahalanobisDistanceMinimizerAnalyticSIMD::SolveFloatAligned(
   float lambda = 0.001;
   float previous_cost = std::numeric_limits<float>::max();
   int iteration = 0;
-  for (; iteration < max_iteration; ++iteration) {
+  for (; iteration < options.max_iterations; ++iteration) {
     const Mat3x3f opt_R = optimized_orientation.toRotationMatrix();
     const Vec3f opt_t = optimized_translation;
 
@@ -1213,10 +1214,10 @@ bool MahalanobisDistanceMinimizerAnalyticSIMD::SolveFloatAligned(
     optimized_orientation.normalize();
 
     // Check convergence
-    if (update_step.norm() < 1e-7) {
+    if (update_step.norm() < options.convergence_handle.parameter_tolerance) {
       break;
     }
-    if (gradient.norm() < 1e-7) {
+    if (gradient.norm() < options.convergence_handle.gradient_tolerance) {
       break;
     }
 
@@ -1239,7 +1240,8 @@ bool MahalanobisDistanceMinimizerAnalyticSIMD::SolveFloatAligned(
 }
 
 bool MahalanobisDistanceMinimizerAnalyticSIMD::SolveFloatIntrinsicAligned(
-    const std::vector<Correspondence>& correspondences, Pose* pose) {
+    const Options& options, const std::vector<Correspondence>& correspondences,
+    Pose* pose) {
   using Vec3f = Eigen::Vector3f;
   using Mat3x3f = Eigen::Matrix3f;
   using Orientationf = Eigen::Quaternionf;
@@ -1260,7 +1262,6 @@ bool MahalanobisDistanceMinimizerAnalyticSIMD::SolveFloatIntrinsicAligned(
     }
   }
 
-  constexpr int max_iteration = 30;
   constexpr float min_lambda = 1e-6f;
   constexpr float max_lambda = 1e-2f;
 
@@ -1272,7 +1273,7 @@ bool MahalanobisDistanceMinimizerAnalyticSIMD::SolveFloatIntrinsicAligned(
   float lambda = 0.001;
   float previous_cost = std::numeric_limits<float>::max();
   int iteration = 0;
-  for (; iteration < max_iteration; ++iteration) {
+  for (; iteration < options.max_iterations; ++iteration) {
     const Mat3x3f opt_R = optimized_orientation.toRotationMatrix();
     const Vec3f opt_t = optimized_translation;
 
@@ -1331,9 +1332,6 @@ bool MahalanobisDistanceMinimizerAnalyticSIMD::SolveFloatIntrinsicAligned(
       pw__[0] = _mm256_fmadd_ps(R__[0][0], p__[0], _mm256_fmadd_ps(R__[0][1], p__[1], _mm256_fmadd_ps(R__[0][2],p__[2], t__[0])));
       pw__[1] = _mm256_fmadd_ps(R__[1][0], p__[0], _mm256_fmadd_ps(R__[1][1], p__[1], _mm256_fmadd_ps(R__[1][2],p__[2], t__[1])));
       pw__[2] = _mm256_fmadd_ps(R__[2][0], p__[0], _mm256_fmadd_ps(R__[2][1], p__[1], _mm256_fmadd_ps(R__[2][2],p__[2], t__[2])));
-      // pw__[0] = _mm256_add_ps(_mm256_mul_ps(R__[0][0], p__[0]), _mm256_add_ps(_mm256_mul_ps(R__[0][1], p__[1]), _mm256_mul_ps(R__[0][2],p__[2])));
-      // pw__[1] = _mm256_add_ps(_mm256_mul_ps(R__[1][0], p__[0]), _mm256_add_ps(_mm256_mul_ps(R__[1][1], p__[1]), _mm256_mul_ps(R__[1][2],p__[2])));
-      // pw__[2] = _mm256_add_ps(_mm256_mul_ps(R__[2][0], p__[0]), _mm256_add_ps(_mm256_mul_ps(R__[2][1], p__[1]), _mm256_mul_ps(R__[2][2],p__[2])));
 
       // e_i = pw - mean
       __m256 e__[3];
@@ -1462,10 +1460,10 @@ bool MahalanobisDistanceMinimizerAnalyticSIMD::SolveFloatIntrinsicAligned(
     optimized_orientation.normalize();
 
     // Check convergence
-    if (update_step.norm() < 1e-7) {
+    if (update_step.norm() < options.convergence_handle.parameter_tolerance) {
       break;
     }
-    if (gradient.norm() < 1e-7) {
+    if (gradient.norm() < options.convergence_handle.gradient_tolerance) {
       break;
     }
 
@@ -1500,7 +1498,7 @@ Orientation MahalanobisDistanceMinimizerAnalyticSIMD::ComputeQuaternion(
     const Vec3& w) {
   Orientation orientation{Orientation::Identity()};
   const double theta = w.norm();
-  if (theta < 1e-6) {
+  if (theta < 1e-7) {
     orientation.w() = 1.0;
     orientation.x() = 0.5 * w.x();
     orientation.y() = 0.5 * w.y();

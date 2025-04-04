@@ -10,8 +10,8 @@ MahalanobisDistanceMinimizerAnalytic::MahalanobisDistanceMinimizerAnalytic() {}
 MahalanobisDistanceMinimizerAnalytic::~MahalanobisDistanceMinimizerAnalytic() {}
 
 bool MahalanobisDistanceMinimizerAnalytic::Solve(
-    const std::vector<Correspondence>& correspondences, Pose* pose) {
-  constexpr int max_iteration = 30;
+    const Options& options, const std::vector<Correspondence>& correspondences,
+    Pose* pose) {
   constexpr double min_lambda = 1e-6;
   constexpr double max_lambda = 1e-2;
 
@@ -23,7 +23,7 @@ bool MahalanobisDistanceMinimizerAnalytic::Solve(
   double lambda = 0.001;
   double previous_cost = std::numeric_limits<double>::max();
   int iteration = 0;
-  for (; iteration < max_iteration; ++iteration) {
+  for (; iteration < options.max_iterations; ++iteration) {
     Mat6x6 hessian{Mat6x6::Zero()};
     Vec6 gradient{Vec6::Zero()};
 
@@ -82,10 +82,10 @@ bool MahalanobisDistanceMinimizerAnalytic::Solve(
     optimized_orientation.normalize();
 
     // Check convergence
-    if (update_step.norm() < 1e-7) {
+    if (update_step.norm() < options.convergence_handle.parameter_tolerance) {
       break;
     }
-    if (gradient.norm() < 1e-7) {
+    if (gradient.norm() < options.convergence_handle.gradient_tolerance) {
       break;
     }
 

@@ -4,6 +4,7 @@
 #include <memory>
 
 #include "nonlinear_optimizer/loss_function.h"
+#include "nonlinear_optimizer/options.h"
 #include "types.h"
 
 namespace nonlinear_optimizer {
@@ -19,7 +20,8 @@ class MahalanobisDistanceMinimizer {
     loss_function_ = loss_function;
   }
 
-  virtual bool Solve(const std::vector<Correspondence>& correspondences,
+  virtual bool Solve(const Options& options,
+                     const std::vector<Correspondence>& correspondences,
                      Pose* pose) = 0;
 
  protected:

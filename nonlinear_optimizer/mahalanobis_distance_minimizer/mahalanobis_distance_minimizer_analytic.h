@@ -17,7 +17,8 @@ class MahalanobisDistanceMinimizerAnalytic
 
   ~MahalanobisDistanceMinimizerAnalytic();
 
-  bool Solve(const std::vector<Correspondence>& correspondences,
+  bool Solve(const Options& options,
+             const std::vector<Correspondence>& correspondences,
              Pose* pose) final;
 
  private:

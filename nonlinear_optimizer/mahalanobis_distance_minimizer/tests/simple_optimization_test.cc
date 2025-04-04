@@ -17,6 +17,8 @@
 #include "nonlinear_optimizer/time_checker.h"
 #include "nonlinear_optimizer/types.h"
 
+nonlinear_optimizer::Options options;
+
 namespace nonlinear_optimizer {
 namespace mahalanobis_distance_minimizer {
 
@@ -494,7 +496,7 @@ Pose OptimizePoseSimplified(const NdtMap& ndt_map,
             nonlinear_optimizer::mahalanobis_distance_minimizer::
                 MahalanobisDistanceMinimizerCeres>();
 
-    optim->Solve(correspondences, &optimized_pose);
+    optim->Solve(options, correspondences, &optimized_pose);
 
     Pose pose_diff = optimized_pose.inverse() * last_optimized_pose;
     if (pose_diff.translation().norm() < 1e-5 &&
@@ -528,7 +530,7 @@ Pose OptimizePoseAnalytic(const NdtMap& ndt_map,
     optim->SetLossFunction(
         std::make_shared<nonlinear_optimizer::ExponentialLossFunction>(1.0,
                                                                        1.0));
-    optim->Solve(correspondences, &optimized_pose);
+    optim->Solve(options, correspondences, &optimized_pose);
 
     Pose pose_diff = optimized_pose.inverse() * last_optimized_pose;
     if (pose_diff.translation().norm() < 1e-5 &&
@@ -562,7 +564,7 @@ Pose OptimizePoseAnalyticSimdHelperDoubleScalar(
     optim->SetLossFunction(
         std::make_shared<nonlinear_optimizer::ExponentialLossFunction>(1.0,
                                                                        1.0));
-    optim->Solve(correspondences, &optimized_pose);
+    optim->Solve(options, correspondences, &optimized_pose);
 
     Pose pose_diff = optimized_pose.inverse() * last_optimized_pose;
     if (pose_diff.translation().norm() < 1e-5 &&
@@ -596,7 +598,7 @@ Pose OptimizePoseAnalyticSimdHelperFloatScalar(
     optim->SetLossFunction(
         std::make_shared<nonlinear_optimizer::ExponentialLossFunction>(1.0,
                                                                        1.0));
-    optim->SolveFloat(correspondences, &optimized_pose);
+    optim->SolveFloat(options, correspondences, &optimized_pose);
 
     Pose pose_diff = optimized_pose.inverse() * last_optimized_pose;
     if (pose_diff.translation().norm() < 1e-5 &&
@@ -630,7 +632,7 @@ Pose OptimizePoseAnalyticSimdHelperFloatScalarAligned(
     optim->SetLossFunction(
         std::make_shared<nonlinear_optimizer::ExponentialLossFunction>(1.0,
                                                                        1.0));
-    optim->SolveFloatAligned(correspondences, &optimized_pose);
+    optim->SolveFloatAligned(options, correspondences, &optimized_pose);
 
     Pose pose_diff = optimized_pose.inverse() * last_optimized_pose;
     if (pose_diff.translation().norm() < 1e-5 &&
@@ -664,7 +666,8 @@ Pose OptimizePoseAnalyticSimdIntrinsicFloatAligned(
     optim->SetLossFunction(
         std::make_shared<nonlinear_optimizer::ExponentialLossFunction>(1.0,
                                                                        1.0));
-    optim->SolveFloatIntrinsicAligned(correspondences, &optimized_pose);
+    optim->SolveFloatIntrinsicAligned(options, correspondences,
+                                      &optimized_pose);
 
     Pose pose_diff = optimized_pose.inverse() * last_optimized_pose;
     if (pose_diff.translation().norm() < 1e-5 &&
@@ -698,7 +701,7 @@ Pose OptimizePoseAnalyticSimdHelperDoubleMatrix(
     optim->SetLossFunction(
         std::make_shared<nonlinear_optimizer::ExponentialLossFunction>(1.0,
                                                                        1.0));
-    optim->SolveDoubleMatrix(correspondences, &optimized_pose);
+    optim->SolveDoubleMatrix(options, correspondences, &optimized_pose);
 
     Pose pose_diff = optimized_pose.inverse() * last_optimized_pose;
     if (pose_diff.translation().norm() < 1e-5 &&
@@ -732,7 +735,7 @@ Pose OptimizePoseAnalyticSimdHelperFloatMatrix(
     optim->SetLossFunction(
         std::make_shared<nonlinear_optimizer::ExponentialLossFunction>(1.0,
                                                                        1.0));
-    optim->SolveFloatMatrix(correspondences, &optimized_pose);
+    optim->SolveFloatMatrix(options, correspondences, &optimized_pose);
 
     Pose pose_diff = optimized_pose.inverse() * last_optimized_pose;
     if (pose_diff.translation().norm() < 1e-5 &&

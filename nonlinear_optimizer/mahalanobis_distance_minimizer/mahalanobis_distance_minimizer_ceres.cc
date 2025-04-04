@@ -12,7 +12,8 @@ MahalanobisDistanceMinimizerCeres::MahalanobisDistanceMinimizerCeres() {}
 MahalanobisDistanceMinimizerCeres::~MahalanobisDistanceMinimizerCeres() {}
 
 bool MahalanobisDistanceMinimizerCeres::Solve(
-    const std::vector<Correspondence>& correspondences, Pose* pose) {
+    const Options& options, const std::vector<Correspondence>& correspondences,
+    Pose* pose) {
   constexpr double kC1{1.0};
   constexpr double kC2{1.0};
 
@@ -34,11 +35,17 @@ bool MahalanobisDistanceMinimizerCeres::Solve(
                              opt_orient);
   }
 
-  ceres::Solver::Options options;
-  options.linear_solver_type = ceres::DENSE_QR;
-  options.max_num_iterations = 30;
+  ceres::Solver::Options ceres_options;
+  ceres_options.linear_solver_type = ceres::DENSE_QR;
+  ceres_options.max_num_iterations = options.max_iterations;
+  ceres_options.function_tolerance =
+      options.convergence_handle.function_tolerance;
+  ceres_options.gradient_tolerance =
+      options.convergence_handle.gradient_tolerance;
+  ceres_options.parameter_tolerance =
+      options.convergence_handle.parameter_tolerance;
   ceres::Solver::Summary summary;
-  ceres::Solve(options, &problem, &summary);
+  ceres::Solve(ceres_options, &problem, &summary);
   // std::cerr << summary.BriefReport() << std::endl;
 
   pose->translation() << opt_trans[0], opt_trans[1], opt_trans[2];

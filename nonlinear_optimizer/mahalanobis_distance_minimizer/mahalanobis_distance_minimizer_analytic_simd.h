@@ -50,19 +50,26 @@ class MahalanobisDistanceMinimizerAnalyticSIMD
 
   ~MahalanobisDistanceMinimizerAnalyticSIMD();
 
-  bool Solve(const std::vector<Correspondence>& correspondences,
+  bool Solve(const Options& options,
+             const std::vector<Correspondence>& correspondences,
              Pose* pose) final;
-  bool SolveFloat(const std::vector<Correspondence>& correspondences,
+  bool SolveFloat(const Options& options,
+                  const std::vector<Correspondence>& correspondences,
                   Pose* pose);
-  bool SolveFloatAligned(const std::vector<Correspondence>& correspondences,
+  bool SolveFloatAligned(const Options& options,
+                         const std::vector<Correspondence>& correspondences,
                          Pose* pose);
   bool SolveFloatIntrinsicAligned(
+      const Options& options,
       const std::vector<Correspondence>& correspondences, Pose* pose);
-  bool SolveDoubleMatrix(const std::vector<Correspondence>& correspondences,
+  bool SolveDoubleMatrix(const Options& options,
+                         const std::vector<Correspondence>& correspondences,
                          Pose* pose);
-  bool SolveFloatMatrix(const std::vector<Correspondence>& correspondences,
+  bool SolveFloatMatrix(const Options& options,
+                        const std::vector<Correspondence>& correspondences,
                         Pose* pose);
   bool SolveFloatMatrixAligned(
+      const Options& options,
       const std::vector<Correspondence>& correspondences, Pose* pose);
 
  private:
