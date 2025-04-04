@@ -20,3 +20,15 @@ target_include_directories(
          ${EIGEN3_INCLUDE_DIRS} ${CERES_INCLUDE_DIRS} ${PC_FLANN_INCLUDE_DIRS})
 target_link_libraries(${PROJECT_NAME}_tests_simple_optimization_test
                       PRIVATE ${CERES_LIBRARIES} ${FLANN_LIBRARIES})
+
+add_executable(
+  ${PROJECT_NAME}_tests_simd_comparison_test
+  tests/simd_comparison_test.cc mahalanobis_distance_minimizer_ceres.cc mahalanobis_distance_minimizer_analytic.cc
+  mahalanobis_distance_minimizer_analytic_simd.cc
+  ${UTILITY_SRC})
+target_include_directories(
+  ${PROJECT_NAME}_tests_simd_comparison_test
+  PUBLIC ${CMAKE_SOURCE_DIR} # Include the parent CMake file's directory
+         ${EIGEN3_INCLUDE_DIRS} ${CERES_INCLUDE_DIRS} ${PC_FLANN_INCLUDE_DIRS})
+target_link_libraries(${PROJECT_NAME}_tests_simd_comparison_test
+                      PRIVATE ${CERES_LIBRARIES} ${FLANN_LIBRARIES})

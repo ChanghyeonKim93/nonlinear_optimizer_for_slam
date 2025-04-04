@@ -9,11 +9,9 @@
 #include "flann/algorithms/kdtree_single_index.h"
 #include "flann/flann.hpp"
 
-#include "nonlinear_optimizer/mahalanobis_distance_minimizer/ceres_cost_functor.h"
 #include "nonlinear_optimizer/mahalanobis_distance_minimizer/mahalanobis_distance_minimizer.h"
 #include "nonlinear_optimizer/mahalanobis_distance_minimizer/mahalanobis_distance_minimizer_analytic.h"
 #include "nonlinear_optimizer/mahalanobis_distance_minimizer/mahalanobis_distance_minimizer_analytic_simd.h"
-#include "nonlinear_optimizer/mahalanobis_distance_minimizer/mahalanobis_distance_minimizer_ceres.h"
 #include "nonlinear_optimizer/time_checker.h"
 #include "nonlinear_optimizer/types.h"
 
@@ -34,15 +32,7 @@ VoxelKey ComputeVoxelKey(const Vec3& point,
 std::vector<Correspondence> MatchPointCloud(
     const NdtMap& ndt_map, const std::vector<Vec3>& local_points,
     const Pose& pose);
-Pose OptimizePoseOriginal(const NdtMap& ndt_map,
-                          const std::vector<Vec3>& local_points,
-                          const Pose& pose);
-Pose OptimizePoseSimplified(const NdtMap& ndt_map,
-                            const std::vector<Vec3>& local_points,
-                            const Pose& initial_pose);
-Pose OptimizePoseRedundantEach(const NdtMap& ndt_map,
-                               const std::vector<Vec3>& local_points,
-                               const Pose& initial_pose);
+
 Pose OptimizePoseAnalytic(const NdtMap& ndt_map,
                           const std::vector<Vec3>& local_points,
                           const Pose& initial_pose);
@@ -64,6 +54,9 @@ Pose OptimizePoseAnalyticSimdHelperDoubleMatrix(
 Pose OptimizePoseAnalyticSimdHelperFloatMatrix(
     const NdtMap& ndt_map, const std::vector<Vec3>& local_points,
     const Pose& initial_pose);
+Pose OptimizePoseAnalyticSimdHelperFloatMatrixAligned(
+    const NdtMap& ndt_map, const std::vector<Vec3>& local_points,
+    const Pose& initial_pose);
 
 }  // namespace mahalanobis_distance_minimizer
 }  // namespace nonlinear_optimizer
@@ -73,7 +66,7 @@ using namespace nonlinear_optimizer::mahalanobis_distance_minimizer;
 
 int main(int, char**) {
   constexpr double kVoxelResolution{1.0};
-  constexpr double kFilterVoxelResolution{0.1};
+  constexpr double kFilterVoxelResolution{0.05};
 
   // Make global points
   const auto points = GenerateGlobalPoints();
@@ -86,9 +79,9 @@ int main(int, char**) {
 
   // Set true pose
   Pose true_pose{Pose::Identity()};
-  true_pose.translation() = Vec3(-0.2, 0.123, 0.3);
+  true_pose.translation() = Vec3(-0.321, 0.123, 0.013);
   true_pose.linear() =
-      Eigen::AngleAxisd(0.1, Vec3(0.0, 0.0, 1.0)).toRotationMatrix();
+      Eigen::AngleAxisd(0.123, Vec3(0.0, 0.0, 1.0)).toRotationMatrix();
 
   // Create local points
   const auto filtered_points = FilterPoints(points, kFilterVoxelResolution);
@@ -96,108 +89,66 @@ int main(int, char**) {
 
   // Optimize pose
   Pose initial_pose{Pose::Identity()};
-  std::cerr << "Start OptimizedPoseOriginal" << std::endl;
-  const auto opt_pose_ceres_redundant =
-      OptimizePoseOriginal(ndt_map, local_points, initial_pose);
-  std::cerr << "Start OptimizePoseSimplified" << std::endl;
-  const auto opt_pose_ceres_simplified =
-      OptimizePoseSimplified(ndt_map, local_points, initial_pose);
-  std::cerr << "Start OptimizePoseRedundantEach" << std::endl;
-  const auto optimized_pose3 =
-      OptimizePoseRedundantEach(ndt_map, local_points, initial_pose);
-  std::cerr << "Start OptimizePoseAnalytic" << std::endl;
-  const auto opt_pose_analytic =
+
+  std::cerr << "Start Analytic:\n";
+  const auto pose_analytic =
       OptimizePoseAnalytic(ndt_map, local_points, initial_pose);
-  std::cerr << "Start OptimizePoseAnalyticSIMD" << std::endl;
-  const auto opt_pose_analytic_simd =
-      OptimizePoseAnalyticSimdHelperDoubleScalar(ndt_map, local_points,
-                                                 initial_pose);
-  std::cerr << "Start OptimizePoseAnalyticSIMDFloat" << std::endl;
-  const auto opt_pose_analytic_simd_float =
-      OptimizePoseAnalyticSimdHelperFloatScalar(ndt_map, local_points,
-                                                initial_pose);
-  std::cerr << "Start OptimizePoseAnalyticSIMDFloatFAST" << std::endl;
-  const auto opt_pose_analytic_simd_float_fast =
-      OptimizePoseAnalyticSimdHelperFloatScalarAligned(ndt_map, local_points,
-                                                       initial_pose);
-  std::cerr << "Start OptimizePoseAnalyticSIMDFloatFAST2" << std::endl;
-  const auto opt_pose_analytic_simd_float_fast2 =
-      OptimizePoseAnalyticSimdIntrinsicFloatAligned(ndt_map, local_points,
-                                                    initial_pose);
-  std::cerr << "Start OptimizePoseAnalyticSimdUsingHelper" << std::endl;
-  const auto opt_pose_analytic_simd_using_helper =
+
+  std::cerr << "Start SIMD Matrix Double :\n";
+  const auto pose_simd_matrix_double =
       OptimizePoseAnalyticSimdHelperDoubleMatrix(ndt_map, local_points,
                                                  initial_pose);
-  std::cerr << "Start OptimizePoseAnalyticSimdUsingHelperFloat" << std::endl;
-  const auto opt_pose_analytic_simd_using_helper_float =
-      OptimizePoseAnalyticSimdHelperFloatMatrix(ndt_map, local_points,
-                                                initial_pose);
 
-  std::cerr << "Pose (ceres redundant): "
-            << opt_pose_ceres_redundant.translation().transpose() << " "
-            << Eigen::Quaterniond(opt_pose_ceres_redundant.linear())
-                   .coeffs()
-                   .transpose()
-            << std::endl;
-  std::cerr << "Pose (ceres simplified): "
-            << opt_pose_ceres_simplified.translation().transpose() << " "
-            << Eigen::Quaterniond(opt_pose_ceres_simplified.linear())
-                   .coeffs()
-                   .transpose()
-            << std::endl;
-  std::cerr << "Pose (ceres redundant, each): "
-            << optimized_pose3.translation().transpose() << " "
-            << Eigen::Quaterniond(optimized_pose3.linear()).coeffs().transpose()
-            << std::endl;
-  std::cerr
-      << "Pose (analytic): " << opt_pose_analytic.translation().transpose()
-      << " "
-      << Eigen::Quaterniond(opt_pose_analytic.linear()).coeffs().transpose()
-      << std::endl;
-  std::cerr << "Pose (analytic simd): "
-            << opt_pose_analytic_simd.translation().transpose() << " "
-            << Eigen::Quaterniond(opt_pose_analytic_simd.linear())
-                   .coeffs()
-                   .transpose()
-            << std::endl;
-  std::cerr << "Pose (analytic simd float): "
-            << opt_pose_analytic_simd_float.translation().transpose() << " "
-            << Eigen::Quaterniond(opt_pose_analytic_simd_float.linear())
-                   .coeffs()
-                   .transpose()
-            << std::endl;
-  std::cerr << "Pose (analytic simd float fast): "
-            << opt_pose_analytic_simd_float_fast.translation().transpose()
-            << " "
-            << Eigen::Quaterniond(opt_pose_analytic_simd_float_fast.linear())
-                   .coeffs()
-                   .transpose()
-            << std::endl;
-  std::cerr << "Pose (analytic simd float fast2): "
-            << opt_pose_analytic_simd_float_fast2.translation().transpose()
-            << " "
-            << Eigen::Quaterniond(opt_pose_analytic_simd_float_fast2.linear())
-                   .coeffs()
-                   .transpose()
-            << std::endl;
-  std::cerr << "Pose (analytic simd using helper): "
-            << opt_pose_analytic_simd_using_helper.translation().transpose()
-            << " "
-            << Eigen::Quaterniond(opt_pose_analytic_simd_using_helper.linear())
-                   .coeffs()
-                   .transpose()
-            << std::endl;
-  std::cerr
-      << "Pose (analytic simd using helper float): "
-      << opt_pose_analytic_simd_using_helper_float.translation().transpose()
-      << " "
-      << Eigen::Quaterniond(opt_pose_analytic_simd_using_helper_float.linear())
-             .coeffs()
-             .transpose()
-      << std::endl;
-  std::cerr << "True pose: " << true_pose.translation().transpose() << " "
-            << Eigen::Quaterniond(true_pose.linear()).coeffs().transpose()
-            << std::endl;
+  std::cerr << "Start SIMD Scalar Double :\n";
+  const auto pose_simd_scalar_double =
+      OptimizePoseAnalyticSimdHelperDoubleScalar(ndt_map, local_points,
+                                                 initial_pose);
+
+  std::cerr << "Start SIMD Matrix Float :\n";
+  const auto pose_simd_matrix_float = OptimizePoseAnalyticSimdHelperFloatMatrix(
+      ndt_map, local_points, initial_pose);
+
+  std::cerr << "Start SIMD Scalar Float :\n";
+  const auto pose_simd_scalar_float = OptimizePoseAnalyticSimdHelperFloatScalar(
+      ndt_map, local_points, initial_pose);
+
+  std::cerr << "Start SIMD Matrix Float Aligned :\n";
+  const auto pose_simd_matrix_float_aligned =
+      OptimizePoseAnalyticSimdHelperFloatMatrixAligned(ndt_map, local_points,
+                                                       initial_pose);
+  std::cerr << "Start SIMD Scalar Float Aligned :\n";
+  const auto pose_simd_scalar_float_aligned =
+      OptimizePoseAnalyticSimdHelperFloatScalarAligned(ndt_map, local_points,
+                                                       initial_pose);
+
+  std::cerr << "Start SIMD Intrinsic Float Aligned :\n";
+  const auto pose_simd_intrinsic_float_aligned =
+      OptimizePoseAnalyticSimdIntrinsicFloatAligned(ndt_map, local_points,
+                                                    initial_pose);
+
+  auto show_pose = [](const std::string& name, const Pose& pose) {
+    std::cerr << name << ":\n"
+              << pose.translation().transpose() << " "
+              << Eigen::Quaterniond(pose.linear()).coeffs().transpose()
+              << std::endl;
+  };
+
+  show_pose("True pose", true_pose);
+  show_pose("Estimated pose (analytic)", pose_analytic);
+  show_pose("Estimated pose (SIMD / Helper (matrix) / Double)",
+            pose_simd_matrix_double);
+  show_pose("Estimated pose (SIMD / Helper (scalar) / Double)",
+            pose_simd_scalar_double);
+  show_pose("Estimated pose (SIMD / Helper (matrix) / Float )",
+            pose_simd_matrix_float);
+  show_pose("Estimated pose (SIMD / Helper (scalar) / Float )",
+            pose_simd_scalar_float);
+  show_pose("Estimated pose (SIMD / Helper (scalar) / Float / Aligned mem.)",
+            pose_simd_scalar_float_aligned);
+  show_pose("Estimated pose (SIMD / Helper (matrix) / Float / Aligned mem.)",
+            pose_simd_matrix_float_aligned);
+  show_pose("Estimated pose (SIMD / Intrinsic / Float / Aligned mem.)",
+            pose_simd_intrinsic_float_aligned);
 
   return 0;
 }
@@ -377,135 +328,6 @@ std::vector<Correspondence> MatchPointCloud(
     }
   }
   return correspondences;
-}
-
-Pose OptimizePoseOriginal(const NdtMap& ndt_map,
-                          const std::vector<Vec3>& local_points,
-                          const Pose& initial_pose) {
-  CHECK_EXEC_TIME_FROM_HERE
-
-  double optimized_translation[3] = {initial_pose.translation().x(),
-                                     initial_pose.translation().y(),
-                                     initial_pose.translation().z()};
-  auto initial_orientation = Orientation(initial_pose.rotation());
-  double optimized_orientation[4] = {
-      initial_orientation.w(), initial_orientation.x(), initial_orientation.y(),
-      initial_orientation.z()};
-
-  Pose optimized_pose{Pose::Identity()};
-  int outer_iter = 0;
-  for (; outer_iter < 10; ++outer_iter) {
-    Pose last_optimized_pose{Pose::Identity()};
-    last_optimized_pose.translation() =
-        Vec3(optimized_translation[0], optimized_translation[1],
-             optimized_translation[2]);
-    last_optimized_pose.linear() =
-        Eigen::Quaterniond(optimized_orientation[0], optimized_orientation[1],
-                           optimized_orientation[2], optimized_orientation[3])
-            .toRotationMatrix();
-
-    // Find correspondences
-    const auto correspondences =
-        MatchPointCloud(ndt_map, local_points, last_optimized_pose);
-
-    ceres::Problem problem;
-    ceres::CostFunction* cost_function =
-        nonlinear_optimizer::mahalanobis_distance_minimizer::
-            RedundantMahalanobisDistanceCostFunctorBatch::Create(
-                correspondences, 1.0, 1.0);
-    problem.AddResidualBlock(cost_function, nullptr, optimized_translation,
-                             optimized_orientation);
-
-    ceres::Solver::Options options;
-    options.linear_solver_type = ceres::DENSE_QR;
-    options.max_num_iterations = 30;
-    ceres::Solver::Summary summary;
-    ceres::Solve(options, &problem, &summary);
-    // std::cerr << "Summary: " << summary.BriefReport() << std::endl;
-
-    Pose current_optimized_pose{Pose::Identity()};
-    current_optimized_pose.translation() =
-        Vec3(optimized_translation[0], optimized_translation[1],
-             optimized_translation[2]);
-    current_optimized_pose.linear() =
-        Orientation(optimized_orientation[0], optimized_orientation[1],
-                    optimized_orientation[2], optimized_orientation[3])
-            .toRotationMatrix();
-    optimized_pose = current_optimized_pose;
-    Pose pose_diff = current_optimized_pose.inverse() * last_optimized_pose;
-    if (pose_diff.translation().norm() < 1e-5 &&
-        Orientation(pose_diff.linear()).vec().norm() < 1e-5) {
-      break;
-    }
-  }
-
-  std::cerr << "outer_iter: " << outer_iter << std::endl;
-
-  return optimized_pose;
-}
-
-Pose OptimizePoseRedundantEach(const NdtMap& ndt_map,
-                               const std::vector<Vec3>& local_points,
-                               const Pose& initial_pose) {
-  CHECK_EXEC_TIME_FROM_HERE
-
-  Pose optimized_pose = initial_pose;
-  Pose last_optimized_pose = optimized_pose;
-  int outer_iter = 0;
-  for (; outer_iter < 10; ++outer_iter) {
-    const auto correspondences =
-        MatchPointCloud(ndt_map, local_points, optimized_pose);
-
-    std::unique_ptr<nonlinear_optimizer::mahalanobis_distance_minimizer::
-                        MahalanobisDistanceMinimizerCeres>
-        optim = std::make_unique<
-            nonlinear_optimizer::mahalanobis_distance_minimizer::
-                MahalanobisDistanceMinimizerCeres>();
-
-    optim->SolveByRedundantForEach(correspondences, &optimized_pose);
-
-    Pose pose_diff = optimized_pose.inverse() * last_optimized_pose;
-    if (pose_diff.translation().norm() < 1e-5 &&
-        Orientation(pose_diff.linear()).vec().norm() < 1e-5) {
-      break;
-    }
-    last_optimized_pose = optimized_pose;
-  }
-  std::cerr << "outer_iter: " << outer_iter << std::endl;
-
-  return optimized_pose;
-}
-
-Pose OptimizePoseSimplified(const NdtMap& ndt_map,
-                            const std::vector<Vec3>& local_points,
-                            const Pose& initial_pose) {
-  CHECK_EXEC_TIME_FROM_HERE
-
-  Pose optimized_pose = initial_pose;
-  Pose last_optimized_pose = optimized_pose;
-  int outer_iter = 0;
-  for (; outer_iter < 10; ++outer_iter) {
-    const auto correspondences =
-        MatchPointCloud(ndt_map, local_points, optimized_pose);
-
-    std::unique_ptr<nonlinear_optimizer::mahalanobis_distance_minimizer::
-                        MahalanobisDistanceMinimizer>
-        optim = std::make_unique<
-            nonlinear_optimizer::mahalanobis_distance_minimizer::
-                MahalanobisDistanceMinimizerCeres>();
-
-    optim->Solve(correspondences, &optimized_pose);
-
-    Pose pose_diff = optimized_pose.inverse() * last_optimized_pose;
-    if (pose_diff.translation().norm() < 1e-5 &&
-        Orientation(pose_diff.linear()).vec().norm() < 1e-5) {
-      break;
-    }
-    last_optimized_pose = optimized_pose;
-  }
-  std::cerr << "outer_iter: " << outer_iter << std::endl;
-
-  return optimized_pose;
 }
 
 Pose OptimizePoseAnalytic(const NdtMap& ndt_map,
@@ -733,6 +555,40 @@ Pose OptimizePoseAnalyticSimdHelperFloatMatrix(
         std::make_shared<nonlinear_optimizer::ExponentialLossFunction>(1.0,
                                                                        1.0));
     optim->SolveFloatMatrix(correspondences, &optimized_pose);
+
+    Pose pose_diff = optimized_pose.inverse() * last_optimized_pose;
+    if (pose_diff.translation().norm() < 1e-5 &&
+        Orientation(pose_diff.linear()).vec().norm() < 1e-5) {
+      break;
+    }
+    last_optimized_pose = optimized_pose;
+  }
+  std::cerr << "outer_iter: " << outer_iter << std::endl;
+
+  return optimized_pose;
+}
+
+Pose OptimizePoseAnalyticSimdHelperFloatMatrixAligned(
+    const NdtMap& ndt_map, const std::vector<Vec3>& local_points,
+    const Pose& initial_pose) {
+  CHECK_EXEC_TIME_FROM_HERE
+
+  Pose optimized_pose = initial_pose;
+  Pose last_optimized_pose = optimized_pose;
+  int outer_iter = 0;
+  for (; outer_iter < 10; ++outer_iter) {
+    const auto correspondences =
+        MatchPointCloud(ndt_map, local_points, optimized_pose);
+
+    std::unique_ptr<nonlinear_optimizer::mahalanobis_distance_minimizer::
+                        MahalanobisDistanceMinimizerAnalyticSIMD>
+        optim = std::make_unique<
+            nonlinear_optimizer::mahalanobis_distance_minimizer::
+                MahalanobisDistanceMinimizerAnalyticSIMD>();
+    optim->SetLossFunction(
+        std::make_shared<nonlinear_optimizer::ExponentialLossFunction>(1.0,
+                                                                       1.0));
+    optim->SolveFloatMatrixAligned(correspondences, &optimized_pose);
 
     Pose pose_diff = optimized_pose.inverse() * last_optimized_pose;
     if (pose_diff.translation().norm() < 1e-5 &&

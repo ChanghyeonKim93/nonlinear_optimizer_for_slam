@@ -182,6 +182,12 @@ class VectorF {
       data_[row] = ScalarF(buf);
     }
   }
+  explicit VectorF(const std::vector<float*>& multi_elements) {
+    if (multi_elements.size() != kRow)
+      throw std::runtime_error("Wrong number of data");
+    for (int row = 0; row < kRow; ++row)
+      data_[row] = ScalarF(multi_elements.at(row));
+  }
 
   VectorF(const VectorF& rhs) {
     for (int row = 0; row < kRow; ++row) data_[row] = rhs.data_[row];
@@ -306,6 +312,15 @@ class MatrixF {
       }
     }
   }
+
+  explicit MatrixF(const std::vector<float*>& multi_elements) {
+    if (multi_elements.size() != kRow * kCol)
+      throw std::runtime_error("Wrong number of data");
+    for (int row = 0; row < kRow; ++row)
+      for (int col = 0; col < kCol; ++col)
+        data_[row][col] = ScalarF(multi_elements.at(row * kCol + col));
+  }
+
   MatrixF(const MatrixF& rhs) {
     for (int row = 0; row < kRow; ++row)
       for (int col = 0; col < kCol; ++col)

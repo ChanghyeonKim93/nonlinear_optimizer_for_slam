@@ -54,14 +54,16 @@ class MahalanobisDistanceMinimizerAnalyticSIMD
              Pose* pose) final;
   bool SolveFloat(const std::vector<Correspondence>& correspondences,
                   Pose* pose);
-  bool SolveFloat_FAST1(const std::vector<Correspondence>& correspondences,
+  bool SolveFloatAligned(const std::vector<Correspondence>& correspondences,
+                         Pose* pose);
+  bool SolveFloatIntrinsicAligned(
+      const std::vector<Correspondence>& correspondences, Pose* pose);
+  bool SolveDoubleMatrix(const std::vector<Correspondence>& correspondences,
+                         Pose* pose);
+  bool SolveFloatMatrix(const std::vector<Correspondence>& correspondences,
                         Pose* pose);
-  bool SolveFloat_FAST2(const std::vector<Correspondence>& correspondences,
-                        Pose* pose);
-  bool SolveUsingHelper(const std::vector<Correspondence>& correspondences,
-                        Pose* pose);
-  bool SolveUsingHelperFloat(const std::vector<Correspondence>& correspondences,
-                             Pose* pose);
+  bool SolveFloatMatrixAligned(
+      const std::vector<Correspondence>& correspondences, Pose* pose);
 
  private:
   void ReflectHessian(Mat6x6* hessian);
