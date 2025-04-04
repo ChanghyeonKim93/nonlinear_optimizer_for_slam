@@ -8,9 +8,13 @@
 namespace nonlinear_optimizer {
 namespace pose_graph_optimizer {
 
-struct LoopConstraint {
-  Pose reference_pose{Pose::Identity()};
-  Pose query_pose{Pose::Identity()};
+enum class ConstraintType { kNormal = 0, kLoop = 1 };
+
+struct Constraint {
+  int reference_pose_index{-1};
+  int query_pose_index{-1};
+  Pose relative_pose_from_reference_to_query{Pose::Identity()};
+  ConstraintType type{ConstraintType::kNormal};
 };
 
 }  // namespace pose_graph_optimizer
