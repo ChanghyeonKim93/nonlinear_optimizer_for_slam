@@ -5,6 +5,7 @@
 
 namespace nonlinear_optimizer {
 
+using Vec2 = Eigen::Matrix<double, 2, 1>;
 using Vec3 = Eigen::Matrix<double, 3, 1>;
 using Vec4 = Eigen::Matrix<double, 4, 1>;
 using Vec5 = Eigen::Matrix<double, 5, 1>;
