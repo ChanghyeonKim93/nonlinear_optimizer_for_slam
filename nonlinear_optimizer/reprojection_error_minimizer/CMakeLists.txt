@@ -10,7 +10,7 @@ set(UTILITY_SRC ${CMAKE_SOURCE_DIR}/nonlinear_optimizer/time_checker.cc)
 # tests
 add_executable(
   ${PROJECT_NAME}_tests_simple_optimization_test
-  tests/simple_optimization_test.cc reprojection_error_minimizer_ceres.cc 
+  tests/simple_optimization_test.cc reprojection_error_minimizer_ceres.cc reprojection_error_minimizer_analytic.cc 
   ${UTILITY_SRC})
 target_include_directories(
   ${PROJECT_NAME}_tests_simple_optimization_test
