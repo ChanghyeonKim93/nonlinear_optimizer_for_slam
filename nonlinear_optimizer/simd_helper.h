@@ -128,6 +128,9 @@ class ScalarF {
   ScalarF operator+(const float rhs) const {
     return ScalarF(_mm256_add_ps(data_, _mm256_set1_ps(rhs)));
   }
+  ScalarF operator-() const {
+    return ScalarF(_mm256_sub_ps(_mm256_set1_ps(0.0f), data_));
+  }
   ScalarF operator-(const float rhs) const {
     return ScalarF(_mm256_sub_ps(data_, _mm256_set1_ps(rhs)));
   }
@@ -526,6 +529,9 @@ class Scalar {
   }
   Scalar operator+(const double rhs) const {
     return Scalar(_mm256_add_pd(data_, _mm256_set1_pd(rhs)));
+  }
+  Scalar operator-() const {
+    return Scalar(_mm256_sub_pd(_mm256_set1_pd(0.0), data_));
   }
   Scalar operator-(const double rhs) const {
     return Scalar(_mm256_sub_pd(data_, _mm256_set1_pd(rhs)));
