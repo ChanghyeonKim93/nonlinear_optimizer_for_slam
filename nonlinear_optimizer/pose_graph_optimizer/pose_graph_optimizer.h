@@ -6,10 +6,16 @@
 #include "nonlinear_optimizer/loss_function.h"
 #include "nonlinear_optimizer/options.h"
 #include "nonlinear_optimizer/pose_graph_optimizer/types.h"
+#include "nonlinear_optimizer/unordered_bimap.h"
 #include "types.h"
 
 namespace nonlinear_optimizer {
 namespace pose_graph_optimizer {
+
+struct PoseParameter {
+  Vec3 translation{Vec3::Zero()};
+  Orientation orientation{Orientation::Identity()};
+};
 
 class PoseGraphOptimizer {
  public:
@@ -22,12 +28,28 @@ class PoseGraphOptimizer {
   }
 
   void SetConstraint(const Constraint& constraint) {
+    if (!index_to_pose_ptr_bimap_.IsKeyExist(constraint.query_pose_index) ||
+        !index_to_pose_ptr_bimap_.IsKeyExist(constraint.reference_pose_index)) {
+      std::cerr << "Constraint is invalid.\n";
+      return;
+    }
     constraints_.push_back(constraint);
   }
 
   void SetPose(const int pose_index, Pose* pose_ptr) {
-    pose_ptr_map_.insert({pose_index, pose_ptr});
-    optimized_pose_map_.insert({pose_index, *pose_ptr});
+    index_to_pose_ptr_bimap_.Insert(pose_index, pose_ptr);
+    PoseParameter pose_parameter;
+    pose_parameter.translation = pose_ptr->translation();
+    pose_parameter.orientation = Orientation(pose_ptr->rotation());
+    optimized_pose_map_.insert({pose_index, pose_parameter});
+  }
+
+  void SetPoseConstant(const int pose_index) {
+    if (!index_to_pose_ptr_bimap_.IsKeyExist(pose_index)) {
+      std::cerr << "Queried pose index is never registered into the solver.\n";
+      return;
+    }
+    fixed_pose_index_set_.insert(pose_index);
   }
 
   /// @brief Solve the pose graph optimization problem. In case of success,
@@ -38,9 +60,29 @@ class PoseGraphOptimizer {
   virtual bool Solve(const Options& options) = 0;
 
  protected:
+  Orientation ComputeQuaternion(const Vec3& w) {
+    Orientation orientation{Orientation::Identity()};
+    const double theta = w.norm();
+    if (theta < 1e-6) {
+      orientation.w() = 1.0;
+      orientation.x() = 0.5 * w.x();
+      orientation.y() = 0.5 * w.y();
+      orientation.z() = 0.5 * w.z();
+    } else {
+      const double half_theta = theta * 0.5;
+      const double sin_half_theta_divided_theta = std::sin(half_theta) / theta;
+      orientation.w() = std::cos(half_theta);
+      orientation.x() = sin_half_theta_divided_theta * w.x();
+      orientation.y() = sin_half_theta_divided_theta * w.y();
+      orientation.z() = sin_half_theta_divided_theta * w.z();
+    }
+    return orientation;
+  }
+
   std::shared_ptr<LossFunction> loss_function_{nullptr};
-  std::unordered_map<int, Pose*> pose_ptr_map_;
-  std::unordered_map<int, Pose> optimized_pose_map_;
+  UnorderedBimap<int, const Pose*> index_to_pose_ptr_bimap_;
+  std::unordered_map<int, PoseParameter> optimized_pose_map_;
+  std::set<int> fixed_pose_index_set_;
   std::vector<Constraint> constraints_;
 };
 

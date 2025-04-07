@@ -12,5 +12,16 @@ PoseGraphOptimizerCeres::PoseGraphOptimizerCeres() {}
 
 PoseGraphOptimizerCeres::~PoseGraphOptimizerCeres() {}
 
+bool PoseGraphOptimizerCeres::Solve(const Options& options) {
+  std::set<int> active_pose_set;
+  for (const auto& [index, pose_ptr] : index_to_pose_ptr_bimap_) {
+    if (fixed_pose_index_set_.find(index) == fixed_pose_index_set_.end())
+      continue;
+    active_pose_set.insert(index);
+  }
+
+  return true;
+}
+
 }  // namespace pose_graph_optimizer
 }  // namespace nonlinear_optimizer
