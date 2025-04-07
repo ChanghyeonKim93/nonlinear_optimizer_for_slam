@@ -6,6 +6,10 @@
 
 namespace nonlinear_optimizer {
 
+/// @brief Unordered bi-directional map. This container does not allow
+/// duplicated key or value.
+/// @tparam kTypeKey Key type
+/// @tparam kTypeValue Value type
 template <typename kTypeKey, typename kTypeValue>
 class UnorderedBimap {
  public:
@@ -64,6 +68,24 @@ class UnorderedBimap {
   void Clear() {
     key_to_val_map_.clear();
     val_to_key_map_.clear();
+  }
+
+  // Key-to-Value iterator
+  std::unordered_map<kTypeKey, const kTypeValue>::const_iterator begin() const {
+    return key_to_val_map_.begin();
+  }
+  std::unordered_map<kTypeKey, const kTypeValue>::const_iterator end() const {
+    return key_to_val_map_.end();
+  }
+
+  // Value-to-Key iterator
+  std::unordered_map<kTypeValue, const kTypeKey>::const_iterator value_begin()
+      const {
+    return val_to_key_map_.begin();
+  }
+  std::unordered_map<kTypeValue, const kTypeKey>::const_iterator value_end()
+      const {
+    return val_to_key_map_.end();
   }
 
  private:
