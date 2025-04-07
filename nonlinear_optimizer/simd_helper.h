@@ -42,31 +42,6 @@
 namespace nonlinear_optimizer {
 namespace simd {
 
-// inline void* custom_aligned_malloc(std::size_t size) {
-//   void* original = std::malloc(size + ALIGN_BYTES);  // size+ALIGN_BYTES
-//   if (original == 0)
-//     return nullptr;  // if allocation is failed, return nullptr;
-//   void* aligned =
-//       reinterpret_cast<void*>((reinterpret_cast<std::size_t>(original) &
-//                                ~(std::size_t(ALIGN_BYTES - 1))) +
-//                               ALIGN_BYTES);
-//   *(reinterpret_cast<void**>(aligned) - 1) = original;
-//   return aligned;
-// }
-
-// /** \internal Frees memory allocated with handmade_aligned_malloc */
-// inline void custom_aligned_free(void* ptr) {
-//   if (ptr) std::free(*(reinterpret_cast<void**>(ptr) - 1));
-// }
-
-inline void* GetAlignedMemory(const size_t num_bytes) {
-  return std::aligned_alloc(ALIGN_BYTES, num_bytes);
-}
-
-inline void FreeAlignedMemory(void* ptr) {
-  if (ptr) std::free(ptr);
-}
-
 template <typename DataType>
 inline DataType* GetAlignedMemory(const size_t num_data) {
   return reinterpret_cast<DataType*>(
