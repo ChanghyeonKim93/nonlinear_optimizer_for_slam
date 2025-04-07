@@ -7,6 +7,9 @@
 
 #include "Eigen/Dense"
 
+#if defined(__x86_64__) || defined(__i386__)
+// USE AVX
+
 #define _SIMD_DATA_STEP_DOUBLE 4
 #define _SIMD_DATA_STEP_FLOAT 8
 #define _SIMD_FLOAT __m256
@@ -39,6 +42,13 @@
  * 50, 60, 70, 80, 90, A0, B0, C0, D0, E0, F0
  */
 
+#elif defined(__aarch64__) || defined(__arm__)
+// USE ARM NEON
+
+#else
+
+#endif
+
 namespace nonlinear_optimizer {
 namespace simd {
 
@@ -65,6 +75,52 @@ class ScalarF {
   explicit ScalarF(const float* rhs) { data_ = _mm256_load_ps(rhs); }
   ScalarF(const __m256& rhs) { data_ = rhs; }
   ScalarF(const ScalarF& rhs) { data_ = rhs.data_; }
+  ScalarF operator<(const float scalar) const {
+    ScalarF comp_mask(
+        _mm256_and_ps(_mm256_cmp_ps(data_, _mm256_set1_ps(scalar), _CMP_LT_OS),
+                      _mm256_set1_ps(1.0f)));
+    return comp_mask;
+  }
+  ScalarF operator<=(const float scalar) const {
+    ScalarF comp_mask(
+        _mm256_and_ps(_mm256_cmp_ps(data_, _mm256_set1_ps(scalar), _CMP_LE_OS),
+                      _mm256_set1_ps(1.0f)));
+    return comp_mask;
+  }
+  ScalarF operator>(const float scalar) const {
+    ScalarF comp_mask(
+        _mm256_and_ps(_mm256_cmp_ps(data_, _mm256_set1_ps(scalar), _CMP_GT_OS),
+                      _mm256_set1_ps(1.0f)));
+    return comp_mask;
+  }
+  ScalarF operator>=(const float scalar) const {
+    // Convert mask to 0.0 or 1.0
+    ScalarF comp_mask(
+        _mm256_and_ps(_mm256_cmp_ps(data_, _mm256_set1_ps(scalar), _CMP_GE_OS),
+                      _mm256_set1_ps(1.0f)));
+    return comp_mask;
+  }
+  ScalarF operator<(const ScalarF& rhs) const {
+    ScalarF comp_mask(_mm256_and_ps(_mm256_cmp_ps(data_, rhs.data_, _CMP_LT_OS),
+                                    _mm256_set1_ps(1.0f)));
+    return comp_mask;
+  }
+  ScalarF operator<=(const ScalarF& rhs) const {
+    ScalarF comp_mask(_mm256_and_ps(_mm256_cmp_ps(data_, rhs.data_, _CMP_LE_OS),
+                                    _mm256_set1_ps(1.0f)));
+    return comp_mask;
+  }
+  ScalarF operator>(const ScalarF& rhs) const {
+    ScalarF comp_mask(_mm256_and_ps(_mm256_cmp_ps(data_, rhs.data_, _CMP_GT_OS),
+                                    _mm256_set1_ps(1.0f)));
+    return comp_mask;
+  }
+  ScalarF operator>=(const ScalarF& rhs) const {
+    // Convert mask to 0.0 or 1.0
+    ScalarF comp_mask(_mm256_and_ps(_mm256_cmp_ps(data_, rhs.data_, _CMP_GE_OS),
+                                    _mm256_set1_ps(1.0f)));
+    return comp_mask;
+  }
   ScalarF& operator=(const ScalarF& rhs) {
     data_ = rhs.data_;
     return *this;
@@ -417,6 +473,53 @@ class Scalar {
   explicit Scalar(const double* rhs) { data_ = _mm256_load_pd(rhs); }
   Scalar(const __m256d& rhs) { data_ = rhs; }
   Scalar(const Scalar& rhs) { data_ = rhs.data_; }
+
+  Scalar operator<(const double scalar) const {
+    Scalar comp_mask(
+        _mm256_and_pd(_mm256_cmp_pd(data_, _mm256_set1_pd(scalar), _CMP_LT_OS),
+                      _mm256_set1_pd(1.0)));
+    return comp_mask;
+  }
+  Scalar operator<=(const double scalar) const {
+    Scalar comp_mask(
+        _mm256_and_pd(_mm256_cmp_pd(data_, _mm256_set1_pd(scalar), _CMP_LE_OS),
+                      _mm256_set1_pd(1.0)));
+    return comp_mask;
+  }
+  Scalar operator>(const double scalar) const {
+    Scalar comp_mask(
+        _mm256_and_pd(_mm256_cmp_pd(data_, _mm256_set1_pd(scalar), _CMP_GT_OS),
+                      _mm256_set1_pd(1.0)));
+    return comp_mask;
+  }
+  Scalar operator>=(const double scalar) const {
+    // Convert mask to 0.0 or 1.0
+    Scalar comp_mask(
+        _mm256_and_pd(_mm256_cmp_pd(data_, _mm256_set1_pd(scalar), _CMP_GE_OS),
+                      _mm256_set1_pd(1.0)));
+    return comp_mask;
+  }
+  Scalar operator<(const Scalar& rhs) const {
+    Scalar comp_mask(_mm256_and_pd(_mm256_cmp_pd(data_, rhs.data_, _CMP_LT_OS),
+                                   _mm256_set1_pd(1.0)));
+    return comp_mask;
+  }
+  Scalar operator<=(const Scalar& rhs) const {
+    Scalar comp_mask(_mm256_and_pd(_mm256_cmp_pd(data_, rhs.data_, _CMP_LE_OS),
+                                   _mm256_set1_pd(1.0)));
+    return comp_mask;
+  }
+  Scalar operator>(const Scalar& rhs) const {
+    Scalar comp_mask(_mm256_and_pd(_mm256_cmp_pd(data_, rhs.data_, _CMP_GT_OS),
+                                   _mm256_set1_pd(1.0)));
+    return comp_mask;
+  }
+  Scalar operator>=(const Scalar& rhs) const {
+    // Convert mask to 0.0 or 1.0
+    Scalar comp_mask(_mm256_and_pd(_mm256_cmp_pd(data_, rhs.data_, _CMP_GE_OS),
+                                   _mm256_set1_pd(1.0)));
+    return comp_mask;
+  }
   Scalar& operator=(const Scalar& rhs) {
     data_ = rhs.data_;
     return *this;
