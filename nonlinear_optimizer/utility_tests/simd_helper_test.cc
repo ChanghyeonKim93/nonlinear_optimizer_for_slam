@@ -56,24 +56,21 @@ TEST_F(SimdHelperTest, MemoryAlignmentTest) {
   const size_t num_data = 10000;
 
   float* aligned_float = nullptr;
-  aligned_float = reinterpret_cast<float*>(
-      simd::GetAlignedMemory(num_data * sizeof(float)));
+  aligned_float = simd::GetAlignedMemory<float>(num_data);
   EXPECT_NE(aligned_float, nullptr);
   bool is_aligned =
       (reinterpret_cast<std::uintptr_t>(aligned_float) % alignment == 0);
   EXPECT_TRUE(is_aligned);
 
   double* aligned_double = nullptr;
-  aligned_double = reinterpret_cast<double*>(
-      simd::GetAlignedMemory(num_data * sizeof(double)));
+  aligned_double = simd::GetAlignedMemory<double>(num_data);
   EXPECT_NE(aligned_double, nullptr);
   is_aligned =
       (reinterpret_cast<std::uintptr_t>(aligned_double) % alignment == 0);
   EXPECT_TRUE(is_aligned);
 
   int* aligned_int = nullptr;
-  aligned_int =
-      reinterpret_cast<int*>(simd::GetAlignedMemory(num_data * sizeof(int)));
+  aligned_int = simd::GetAlignedMemory<int>(num_data);
   EXPECT_NE(aligned_int, nullptr);
   is_aligned = (reinterpret_cast<std::uintptr_t>(aligned_int) % alignment == 0);
   EXPECT_TRUE(is_aligned);

@@ -8,6 +8,7 @@
 #include "nonlinear_optimizer/reprojection_error_minimizer/ceres_cost_functor.h"
 #include "nonlinear_optimizer/reprojection_error_minimizer/reprojection_error_minimizer.h"
 #include "nonlinear_optimizer/reprojection_error_minimizer/reprojection_error_minimizer_analytic.h"
+#include "nonlinear_optimizer/reprojection_error_minimizer/reprojection_error_minimizer_analytic_simd.h"
 #include "nonlinear_optimizer/reprojection_error_minimizer/reprojection_error_minimizer_ceres.h"
 #include "nonlinear_optimizer/time_checker.h"
 #include "nonlinear_optimizer/types.h"
@@ -28,6 +29,9 @@ Pose OptimizePoseCeres(const std::vector<Correspondence>& correspondences,
 Pose OptimizePoseAnalytic(const std::vector<Correspondence>& correspondences,
                           const CameraIntrinsics& camera_intrinsics,
                           const Pose& initial_pose);
+Pose OptimizePoseAnalyticSIMD(
+    const std::vector<Correspondence>& correspondences,
+    const CameraIntrinsics& camera_intrinsics, const Pose& initial_pose);
 
 }  // namespace reprojection_error_minimizer
 }  // namespace nonlinear_optimizer
@@ -78,6 +82,11 @@ int main(int, char**) {
       OptimizePoseAnalytic(correspondences, camera_intrinsics, initial_pose)
           .inverse();
 
+  std::cerr << "Start OptimizedPoseAnalyticSIMD" << std::endl;
+  const auto opt_pose_analytic_simd =
+      OptimizePoseAnalyticSIMD(correspondences, camera_intrinsics, initial_pose)
+          .inverse();
+
   std::cerr << "True pose: " << true_pose.translation().transpose() << " "
             << Eigen::Quaterniond(true_pose.linear()).coeffs().transpose()
             << std::endl;
@@ -90,6 +99,13 @@ int main(int, char**) {
       << " "
       << Eigen::Quaterniond(opt_pose_analytic.linear()).coeffs().transpose()
       << std::endl;
+  std::cerr << "Pose (analytic simd): "
+            << opt_pose_analytic_simd.translation().transpose() << " "
+            << Eigen::Quaterniond(opt_pose_analytic_simd.linear())
+                   .coeffs()
+                   .transpose()
+            << std::endl;
+
   return 0;
 }
 
@@ -207,6 +223,40 @@ Pose OptimizePoseAnalytic(const std::vector<Correspondence>& correspondences,
       optim =
           std::make_unique<nonlinear_optimizer::reprojection_error_minimizer::
                                ReprojectionErrorMinimizerAnalytic>();
+  optim->SetLossFunction(
+      std::make_shared<nonlinear_optimizer::ExponentialLossFunction>(1.0, 1.0));
+  optim->Solve(options, correspondences, camera_intrinsics, &optimized_pose);
+
+  return optimized_pose;
+}
+
+Pose OptimizePoseAnalyticSIMD(
+    const std::vector<Correspondence>& correspondences,
+    const CameraIntrinsics& camera_intrinsics, const Pose& initial_pose) {
+  CHECK_EXEC_TIME_FROM_HERE
+
+  double optimized_translation[3] = {initial_pose.translation().x(),
+                                     initial_pose.translation().y(),
+                                     initial_pose.translation().z()};
+  auto initial_orientation = Orientation(initial_pose.rotation());
+  double optimized_orientation[4] = {
+      initial_orientation.w(), initial_orientation.x(), initial_orientation.y(),
+      initial_orientation.z()};
+
+  Pose optimized_pose{Pose::Identity()};
+  optimized_pose.translation() =
+      Vec3(optimized_translation[0], optimized_translation[1],
+           optimized_translation[2]);
+  optimized_pose.linear() =
+      Orientation(optimized_orientation[0], optimized_orientation[1],
+                  optimized_orientation[2], optimized_orientation[3])
+          .toRotationMatrix();
+
+  std::unique_ptr<nonlinear_optimizer::reprojection_error_minimizer::
+                      ReprojectionErrorMinimizerAnalyticSIMD>
+      optim =
+          std::make_unique<nonlinear_optimizer::reprojection_error_minimizer::
+                               ReprojectionErrorMinimizerAnalyticSIMD>();
   optim->SetLossFunction(
       std::make_shared<nonlinear_optimizer::ExponentialLossFunction>(1.0, 1.0));
   optim->Solve(options, correspondences, camera_intrinsics, &optimized_pose);
