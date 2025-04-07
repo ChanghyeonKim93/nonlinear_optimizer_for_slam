@@ -30,7 +30,9 @@ class PoseGraphOptimizer {
     optimized_pose_map_.insert({pose_index, *pose_ptr});
   }
 
-  /// @brief Solve the pose graph optimization problem
+  /// @brief Solve the pose graph optimization problem. In case of success,
+  /// registered poses are changed to the optimized poses. If not, the poses are
+  /// not changed.
   /// @param options Optimization options
   /// @return Success or not
   virtual bool Solve(const Options& options) = 0;

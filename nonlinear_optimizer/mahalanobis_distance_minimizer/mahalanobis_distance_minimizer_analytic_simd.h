@@ -74,7 +74,6 @@ class MahalanobisDistanceMinimizerAnalyticSIMD
 
  private:
   void ReflectHessian(Mat6x6* hessian);
-  Orientation ComputeQuaternion(const Vec3& w);
 };
 
 }  // namespace mahalanobis_distance_minimizer

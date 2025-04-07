@@ -33,7 +33,6 @@ class MahalanobisDistanceMinimizerAnalytic
   void AddHessianOnlyUpperTriangle(const Mat6x6& local_hessian,
                                    Mat6x6* global_hessian);
   void ReflectHessian(Mat6x6* hessian);
-  Orientation ComputeQuaternion(const Vec3& w);
 };
 
 }  // namespace mahalanobis_distance_minimizer

@@ -1494,25 +1494,5 @@ void MahalanobisDistanceMinimizerAnalyticSIMD::ReflectHessian(Mat6x6* hessian) {
   }
 }
 
-Orientation MahalanobisDistanceMinimizerAnalyticSIMD::ComputeQuaternion(
-    const Vec3& w) {
-  Orientation orientation{Orientation::Identity()};
-  const double theta = w.norm();
-  if (theta < 1e-7) {
-    orientation.w() = 1.0;
-    orientation.x() = 0.5 * w.x();
-    orientation.y() = 0.5 * w.y();
-    orientation.z() = 0.5 * w.z();
-  } else {
-    const double half_theta = theta * 0.5;
-    const double sin_half_theta_divided_theta = std::sin(half_theta) / theta;
-    orientation.w() = std::cos(half_theta);
-    orientation.x() = sin_half_theta_divided_theta * w.x();
-    orientation.y() = sin_half_theta_divided_theta * w.y();
-    orientation.z() = sin_half_theta_divided_theta * w.z();
-  }
-  return orientation;
-}
-
 }  // namespace mahalanobis_distance_minimizer
 }  // namespace nonlinear_optimizer
