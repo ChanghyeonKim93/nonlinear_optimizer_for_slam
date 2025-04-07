@@ -109,9 +109,9 @@ bool ReprojectionErrorMinimizerAnalyticSIMD::Solve(
       const simd::ScalarF xw_inv_zwzw__ = Xw__(0) * inv_zwzw__;
       const simd::ScalarF yw_inv_zwzw__ = Xw__(1) * inv_zwzw__;
       J__(0, 0) = inv_zw__;
-      J__(0, 2) -= xw_inv_zwzw__;
+      J__(0, 2) = -xw_inv_zwzw__;
       J__(1, 1) = inv_zw__;
-      J__(1, 2) -= yw_inv_zwzw__;
+      J__(1, 2) = -yw_inv_zwzw__;
       J__(0, 3) =
           inv_zw__ * m_R_skewX__(0, 0) - xw_inv_zwzw__ * m_R_skewX__(2, 0);
       J__(0, 4) =
