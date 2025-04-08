@@ -2,6 +2,7 @@
 #define NONLINEAR_OPTIMIZER_POSE_GRAPH_OPTIMIZER_POSE_GRAPH_OPTIMIZER_H_
 
 #include <memory>
+#include <set>
 
 #include "nonlinear_optimizer/loss_function.h"
 #include "nonlinear_optimizer/options.h"
@@ -13,8 +14,8 @@ namespace nonlinear_optimizer {
 namespace pose_graph_optimizer {
 
 struct PoseParameter {
-  Vec3 translation{Vec3::Zero()};
-  Orientation orientation{Orientation::Identity()};
+  double position[3];
+  double orientation[4];
 };
 
 class PoseGraphOptimizer {
@@ -39,8 +40,14 @@ class PoseGraphOptimizer {
   void SetPose(const int pose_index, Pose* pose_ptr) {
     index_to_pose_ptr_bimap_.Insert(pose_index, pose_ptr);
     PoseParameter pose_parameter;
-    pose_parameter.translation = pose_ptr->translation();
-    pose_parameter.orientation = Orientation(pose_ptr->rotation());
+    pose_parameter.position[0] = pose_ptr->translation()(0);
+    pose_parameter.position[1] = pose_ptr->translation()(1);
+    pose_parameter.position[2] = pose_ptr->translation()(2);
+    Orientation quaternion(pose_ptr->rotation());
+    pose_parameter.orientation[0] = quaternion.w();
+    pose_parameter.orientation[1] = quaternion.x();
+    pose_parameter.orientation[2] = quaternion.y();
+    pose_parameter.orientation[3] = quaternion.z();
     optimized_pose_map_.insert({pose_index, pose_parameter});
   }
 

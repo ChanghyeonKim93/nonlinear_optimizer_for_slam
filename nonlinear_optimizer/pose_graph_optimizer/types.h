@@ -8,13 +8,13 @@
 namespace nonlinear_optimizer {
 namespace pose_graph_optimizer {
 
-enum class ConstraintType { kNormal = 0, kLoop = 1 };
+enum class ConstraintType { kOdometry = 0, kLoop = 1 };
 
 struct Constraint {
   int reference_pose_index{-1};
   int query_pose_index{-1};
   Pose relative_pose_from_reference_to_query{Pose::Identity()};
-  ConstraintType type{ConstraintType::kNormal};
+  ConstraintType type{ConstraintType::kOdometry};
 };
 
 }  // namespace pose_graph_optimizer

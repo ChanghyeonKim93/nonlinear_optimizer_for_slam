@@ -1,3 +1,4 @@
 add_subdirectory(mahalanobis_distance_minimizer)
 add_subdirectory(reprojection_error_minimizer)
+add_subdirectory(pose_graph_optimizer)
 add_subdirectory(utility_tests)
