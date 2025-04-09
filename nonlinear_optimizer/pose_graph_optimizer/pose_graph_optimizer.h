@@ -87,7 +87,7 @@ class PoseGraphOptimizer {
   }
 
   std::shared_ptr<LossFunction> loss_function_{nullptr};
-  UnorderedBimap<int, const Pose*> index_to_pose_ptr_bimap_;
+  UnorderedBimap<int, Pose*> index_to_pose_ptr_bimap_;
   std::unordered_map<int, PoseParameter> optimized_pose_map_;
   std::set<int> fixed_pose_index_set_;
   std::vector<Constraint> constraints_;

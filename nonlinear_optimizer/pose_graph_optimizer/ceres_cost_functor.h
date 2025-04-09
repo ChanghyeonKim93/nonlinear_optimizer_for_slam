@@ -20,7 +20,6 @@ class RelativePoseCostFunctor {
                   const T* const query_position_ptr,
                   const T* const query_orientation_ptr, T* residual_ptr) const {
     using CeresVec3 = Eigen::Matrix<T, 3, 1>;
-    using CeresMat3x3 = Eigen::Matrix<T, 3, 3>;
     using CeresQuaternion = Eigen::Quaternion<T>;
     CeresVec3 reference_position(reference_translation_ptr[0],
                                  reference_translation_ptr[1],

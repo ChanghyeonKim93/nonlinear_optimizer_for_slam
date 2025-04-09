@@ -29,7 +29,7 @@ std::vector<Pose> GenerateTruePoses() {
     z += kPositionStep;
   }
 
-  for (int index = 21; index < 40; ++index) {
+  for (int index = 20; index < 40; ++index) {
     y += kPositionStep;
     z += kPositionStep;
     poses.at(index).translation().x() = x;
@@ -37,7 +37,7 @@ std::vector<Pose> GenerateTruePoses() {
     poses.at(index).translation().z() = z;
   }
 
-  for (int index = 41; index < 60; ++index) {
+  for (int index = 40; index < 60; ++index) {
     x -= kPositionStep;
     z -= kPositionStep;
     poses.at(index).translation().x() = x;
@@ -45,7 +45,7 @@ std::vector<Pose> GenerateTruePoses() {
     poses.at(index).translation().z() = z;
   }
 
-  for (int index = 61; index < 80; ++index) {
+  for (int index = 60; index < 80; ++index) {
     y -= kPositionStep;
     z -= kPositionStep;
     poses.at(index).translation().x() = x;
@@ -61,9 +61,8 @@ std::vector<Pose> ApplyNoiseOnPoses(const std::vector<Pose>& poses) {
   std::vector<Pose> noisy_poses;
   noisy_poses.push_back(Pose::Identity());
   for (size_t index = 1; index < poses.size(); ++index) {
-    const auto& true_pose = poses.at(index);
-    Pose noisy_pose = true_pose;
-    const int k = index / 3;
+    Pose noisy_pose = poses.at(index);
+    const int k = index % 3;
     noisy_pose.translation()(k) += (index % 2 ? 1 : -1) * kPoseNoise;
     noisy_poses.push_back(noisy_pose);
   }
@@ -79,18 +78,16 @@ using namespace nonlinear_optimizer::pose_graph_optimizer;
 int main(int, char**) {
   const auto true_poses = GenerateTruePoses();
   auto poses = ApplyNoiseOnPoses(true_poses);
-  std::cerr << "noisy_poses.size() : " << poses.size() << std::endl;
 
   std::vector<std::pair<int, int>> odometry_pairs;
   for (int index = 0; index < 79; ++index)
     odometry_pairs.push_back({index, index + 1});
-  std::cerr << "ok\n";
 
   std::vector<std::pair<int, int>> loop_pairs{
       {18, 21}, {38, 42}, {59, 61}, {77, 1}};
 
-  std::cerr << "odom pairs: " << odometry_pairs.size() << std::endl;
-  std::cerr << "loop pairs: " << loop_pairs.size() << std::endl;
+  std::cerr << "# odometry pairs: " << odometry_pairs.size() << std::endl;
+  std::cerr << "# loop pairs: " << loop_pairs.size() << std::endl;
 
   // Make constraints
   std::vector<Constraint> constraints;
@@ -121,23 +118,34 @@ int main(int, char**) {
     constraints.push_back(constraint);
   }
 
-  std::cerr << "0\n";
   std::unique_ptr<PoseGraphOptimizer> optimizer =
       std::make_unique<PoseGraphOptimizerCeres>();
   for (size_t index = 0; index < poses.size(); ++index)
     optimizer->SetPose(index, &poses.at(index));
-  std::cerr << "1\n";
 
   optimizer->SetPoseConstant(0);
-  std::cerr << "2\n";
 
   for (const auto& constraint : constraints)
     optimizer->SetConstraint(constraint);
-  std::cerr << "3\n";
 
   Options options;
+  options.convergence_handle.function_tolerance = 1e-12;
+  options.convergence_handle.gradient_tolerance = 1e-12;
+  options.convergence_handle.parameter_tolerance = 1e-12;
   const bool success = optimizer->Solve(options);
-  std::cerr << "4\n";
+  std::cerr << "Optimization is succeeded? : " << (success ? "yes" : "no")
+            << std::endl;
+
+  // Check results
+  for (size_t index = 0; index < poses.size(); ++index) {
+    const auto& true_pose = true_poses.at(index);
+    const auto& est_pose = poses.at(index);
+    const Pose pose_diff = true_pose.inverse() * est_pose;
+
+    std::cerr << index << "-th pose diff:\n"
+              << pose_diff.translation().transpose() << "\n"
+              << pose_diff.linear() << std::endl;
+  }
 
   return 0;
 }
