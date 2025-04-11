@@ -14,7 +14,7 @@ PoseGraphOptimizerCeres::~PoseGraphOptimizerCeres() {}
 
 bool PoseGraphOptimizerCeres::Solve(const Options& options) {
   ceres::Problem problem;
-  for (const auto& constraint : constraints_) {
+  for (auto& constraint : constraints_) {
     auto& query_pose = optimized_pose_map_.at(constraint.query_pose_index);
     auto& reference_pose =
         optimized_pose_map_.at(constraint.reference_pose_index);
@@ -24,12 +24,21 @@ bool PoseGraphOptimizerCeres::Solve(const Options& options) {
     auto& reference_position = reference_pose.position;
     auto& reference_orientation = reference_pose.orientation;
 
-    ceres::CostFunction* cost_function =
-        RelativePoseCostFunctor::Create(constraint);
     ceres::LossFunction* loss_function = nullptr;
-    problem.AddResidualBlock(cost_function, loss_function, reference_position,
-                             reference_orientation, query_position,
-                             query_orientation);
+    if (constraint.type == ConstraintType::kLoop) {
+      auto switch_parameter = &constraint.switch_parameter;
+      ceres::CostFunction* cost_function =
+          RelativePoseCostFunctor::CreateWithSwitchParameter(constraint);
+      problem.AddResidualBlock(cost_function, loss_function, reference_position,
+                               reference_orientation, query_position,
+                               query_orientation, switch_parameter);
+    } else {
+      ceres::CostFunction* cost_function =
+          RelativePoseCostFunctor::Create(constraint);
+      problem.AddResidualBlock(cost_function, loss_function, reference_position,
+                               reference_orientation, query_position,
+                               query_orientation);
+    }
   }
   for (const auto& fixed_pose_index : fixed_pose_index_set_) {
     auto& fixed_pose = optimized_pose_map_.at(fixed_pose_index);
@@ -65,6 +74,12 @@ bool PoseGraphOptimizerCeres::Solve(const Options& options) {
     optimized_orientation.normalize();
     original_pose_ptr->linear() = optimized_orientation.toRotationMatrix();
   };
+
+  for (const auto& constraint : constraints_) {
+    std::cerr << constraint.query_pose_index << ", "
+              << constraint.reference_pose_index << " : "
+              << constraint.switch_parameter << std::endl;
+  }
 
   return true;
 }

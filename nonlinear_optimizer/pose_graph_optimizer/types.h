@@ -14,6 +14,7 @@ struct Constraint {
   int reference_pose_index{-1};
   int query_pose_index{-1};
   Pose relative_pose_from_reference_to_query{Pose::Identity()};
+  double switch_parameter{1.0};
   ConstraintType type{ConstraintType::kOdometry};
 };
 

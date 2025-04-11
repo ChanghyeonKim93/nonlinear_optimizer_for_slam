@@ -84,7 +84,7 @@ int main(int, char**) {
     odometry_pairs.push_back({index, index + 1});
 
   std::vector<std::pair<int, int>> loop_pairs{
-      {18, 21}, {38, 42}, {59, 61}, {77, 1}};
+      {18, 21}, {38, 42}, {57, 61}, {77, 3}};
 
   std::cerr << "# odometry pairs: " << odometry_pairs.size() << std::endl;
   std::cerr << "# loop pairs: " << loop_pairs.size() << std::endl;
@@ -117,6 +117,8 @@ int main(int, char**) {
     constraint.type = ConstraintType::kLoop;
     constraints.push_back(constraint);
   }
+  constraints.back()
+      .relative_pose_from_reference_to_query.setIdentity();  // outlier
 
   std::unique_ptr<PoseGraphOptimizer> optimizer =
       std::make_unique<PoseGraphOptimizerCeres>();
@@ -129,9 +131,10 @@ int main(int, char**) {
     optimizer->SetConstraint(constraint);
 
   Options options;
-  options.convergence_handle.function_tolerance = 1e-12;
-  options.convergence_handle.gradient_tolerance = 1e-12;
-  options.convergence_handle.parameter_tolerance = 1e-12;
+  options.max_iterations = 500;
+  options.convergence_handle.function_tolerance = 1e-18;
+  options.convergence_handle.gradient_tolerance = 1e-18;
+  options.convergence_handle.parameter_tolerance = 1e-18;
   const bool success = optimizer->Solve(options);
   std::cerr << "Optimization is succeeded? : " << (success ? "yes" : "no")
             << std::endl;
