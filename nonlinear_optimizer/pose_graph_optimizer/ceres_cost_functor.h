@@ -91,8 +91,8 @@ class RelativePoseCostFunctor {
                               relative_rotation_from_reference_to_query;
     residual.template block<3, 1>(3, 0) = T(2.0) * error_q.vec();
     residual.template block<6, 1>(0, 0) *= switch_parameter;
-    residual(6) = (T(1.0) - switch_parameter) * 0.0001;  // scaling is necessary
-    // to avoid the switch parameter to be too small
+    residual(6) = (T(1.0) - switch_parameter) * 1e-9;
+    // Scaling is necessary to avoid the switch parameter to be too small
 
     return true;
   }

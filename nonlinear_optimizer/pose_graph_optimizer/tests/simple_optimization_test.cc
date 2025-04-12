@@ -84,7 +84,7 @@ int main(int, char**) {
     odometry_pairs.push_back({index, index + 1});
 
   std::vector<std::pair<int, int>> loop_pairs{
-      {18, 21}, {38, 42}, {57, 61}, {77, 3}};
+      {18, 21}, {38, 42}, {57, 61}, {77, 2}};
 
   std::cerr << "# odometry pairs: " << odometry_pairs.size() << std::endl;
   std::cerr << "# loop pairs: " << loop_pairs.size() << std::endl;
@@ -101,6 +101,7 @@ int main(int, char**) {
     constraint.query_pose_index = i1;
     constraint.relative_pose_from_reference_to_query =
         relative_pose_from_reference_to_query;
+    // constraint.type = ConstraintType::kLoop;
     constraint.type = ConstraintType::kOdometry;
     constraints.push_back(constraint);
   }
@@ -117,8 +118,8 @@ int main(int, char**) {
     constraint.type = ConstraintType::kLoop;
     constraints.push_back(constraint);
   }
-  constraints.back()
-      .relative_pose_from_reference_to_query.setIdentity();  // outlier
+  (constraints.end() - 1)
+      ->relative_pose_from_reference_to_query.setIdentity();  // outlier
 
   std::unique_ptr<PoseGraphOptimizer> optimizer =
       std::make_unique<PoseGraphOptimizerCeres>();
