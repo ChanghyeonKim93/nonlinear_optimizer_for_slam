@@ -86,6 +86,20 @@ class PoseGraphOptimizer {
     return orientation;
   }
 
+  void UpdateOptimizedPose() {
+    for (const auto& [index, optimized_pose] : optimized_pose_map_) {
+      auto& original_pose_ptr = index_to_pose_ptr_bimap_.GetValue(index);
+      original_pose_ptr->translation().x() = optimized_pose.position[0];
+      original_pose_ptr->translation().y() = optimized_pose.position[1];
+      original_pose_ptr->translation().z() = optimized_pose.position[2];
+      Orientation optimized_orientation(
+          optimized_pose.orientation[0], optimized_pose.orientation[1],
+          optimized_pose.orientation[2], optimized_pose.orientation[3]);
+      optimized_orientation.normalize();
+      original_pose_ptr->linear() = optimized_orientation.toRotationMatrix();
+    }
+  }
+
   std::shared_ptr<LossFunction> loss_function_{nullptr};
   UnorderedBimap<int, Pose*> index_to_pose_ptr_bimap_;
   std::unordered_map<int, PoseParameter> optimized_pose_map_;
