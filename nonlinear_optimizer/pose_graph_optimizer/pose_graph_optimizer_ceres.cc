@@ -63,23 +63,7 @@ bool PoseGraphOptimizerCeres::Solve(const Options& options) {
 
   if (!ceres_summary.IsSolutionUsable()) return false;
 
-  for (const auto& [index, optimized_pose] : optimized_pose_map_) {
-    auto& original_pose_ptr = index_to_pose_ptr_bimap_.GetValue(index);
-    original_pose_ptr->translation().x() = optimized_pose.position[0];
-    original_pose_ptr->translation().y() = optimized_pose.position[1];
-    original_pose_ptr->translation().z() = optimized_pose.position[2];
-    Orientation optimized_orientation(
-        optimized_pose.orientation[0], optimized_pose.orientation[1],
-        optimized_pose.orientation[2], optimized_pose.orientation[3]);
-    optimized_orientation.normalize();
-    original_pose_ptr->linear() = optimized_orientation.toRotationMatrix();
-  };
-
-  for (const auto& constraint : constraints_) {
-    std::cerr << constraint.query_pose_index << ", "
-              << constraint.reference_pose_index << " : "
-              << constraint.switch_parameter << std::endl;
-  }
+  UpdateOptimizedPose();
 
   return true;
 }
