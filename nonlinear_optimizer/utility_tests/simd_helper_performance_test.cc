@@ -4,7 +4,7 @@
 
 #include "immintrin.h"
 
-#include "nonlinear_optimizer/simd_helper.h"
+#include "nonlinear_optimizer/simd_helper/simd_helper.h"
 #include "nonlinear_optimizer/time_checker.h"
 
 using namespace nonlinear_optimizer;

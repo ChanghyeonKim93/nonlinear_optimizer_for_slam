@@ -1,15 +1,13 @@
-#ifndef NONLINEAR_OPTIMIZER_SIMD_HELPER_H_
-#define NONLINEAR_OPTIMIZER_SIMD_HELPER_H_
+#ifndef NONLINEAR_OPTIMIZER_SIMD_HELPER_SIMD_HELPER_AMD_H_
+#define NONLINEAR_OPTIMIZER_SIMD_HELPER_SIMD_HELPER_AMD_H_
 
 #include <iostream>
 
+#if defined(__amd64__) || defined(__x86_64__)
+
 #include "immintrin.h"
 
-#include "Eigen/Dense"
-
-#if defined(__x86_64__) || defined(__i386__)
-// USE AVX
-
+// AMD CPU (Intel, AMD)
 #define _SIMD_DATA_STEP_DOUBLE 4
 #define _SIMD_DATA_STEP_FLOAT 8
 #define _SIMD_FLOAT __m256
@@ -30,69 +28,48 @@
 #define _SIMD_SUB_D _mm256_sub_pd
 #define _SIMD_STORE_D _mm256_store_pd
 
-#define ALIGN_BYTES 32
-// AVX2 (512 bits = 64 Bytes), AVX (256 bits = 32 Bytes), SSE4.2 (128 bits = 16
-// Bytes)
-/** \internal Like malloc, but the returned pointer is guaranteed to be 32-byte
- * aligned. Fast, but wastes 32 additional bytes of memory. Does not throw any
- * exception.
- *
- * (256 bits) two LSB addresses of 32 bytes-aligned : 00, 20, 40, 60, 80, A0,
- * C0, E0 (128 bits) two LSB addresses of 16 bytes-aligned : 00, 10, 20, 30, 40,
- * 50, 60, 70, 80, 90, A0, B0, C0, D0, E0, F0
- */
-
-#elif defined(__aarch64__) || defined(__arm__)
-// USE ARM NEON
-
-#else
-
-#endif
-
 namespace nonlinear_optimizer {
 namespace simd {
-
-template <typename DataType>
-inline DataType* GetAlignedMemory(const size_t num_data) {
-  return reinterpret_cast<DataType*>(
-      std::aligned_alloc(ALIGN_BYTES, num_data * sizeof(DataType)));
-}
-
-template <typename DataType>
-inline void FreeAlignedMemory(DataType* ptr) {
-  if (ptr != nullptr) std::free(reinterpret_cast<void*>(ptr));
-}
 
 class ScalarF {
  public:
   ScalarF() { data_ = _mm256_setzero_ps(); }
+
   explicit ScalarF(const float scalar) { data_ = _mm256_set1_ps(scalar); }
+
   explicit ScalarF(const float n1, const float n2, const float n3,
                    const float n4, const float n5, const float n6,
                    const float n7, const float n8) {
     data_ = _mm256_set_ps(n8, n7, n6, n5, n4, n3, n2, n1);
   }
+
   explicit ScalarF(const float* rhs) { data_ = _mm256_load_ps(rhs); }
+
   ScalarF(const __m256& rhs) { data_ = rhs; }
+
   ScalarF(const ScalarF& rhs) { data_ = rhs.data_; }
+
   ScalarF operator<(const float scalar) const {
     ScalarF comp_mask(
         _mm256_and_ps(_mm256_cmp_ps(data_, _mm256_set1_ps(scalar), _CMP_LT_OS),
                       _mm256_set1_ps(1.0f)));
     return comp_mask;
   }
+
   ScalarF operator<=(const float scalar) const {
     ScalarF comp_mask(
         _mm256_and_ps(_mm256_cmp_ps(data_, _mm256_set1_ps(scalar), _CMP_LE_OS),
                       _mm256_set1_ps(1.0f)));
     return comp_mask;
   }
+
   ScalarF operator>(const float scalar) const {
     ScalarF comp_mask(
         _mm256_and_ps(_mm256_cmp_ps(data_, _mm256_set1_ps(scalar), _CMP_GT_OS),
                       _mm256_set1_ps(1.0f)));
     return comp_mask;
   }
+
   ScalarF operator>=(const float scalar) const {
     // Convert mask to 0.0 or 1.0
     ScalarF comp_mask(
@@ -100,71 +77,90 @@ class ScalarF {
                       _mm256_set1_ps(1.0f)));
     return comp_mask;
   }
+
   ScalarF operator<(const ScalarF& rhs) const {
     ScalarF comp_mask(_mm256_and_ps(_mm256_cmp_ps(data_, rhs.data_, _CMP_LT_OS),
                                     _mm256_set1_ps(1.0f)));
     return comp_mask;
   }
+
   ScalarF operator<=(const ScalarF& rhs) const {
     ScalarF comp_mask(_mm256_and_ps(_mm256_cmp_ps(data_, rhs.data_, _CMP_LE_OS),
                                     _mm256_set1_ps(1.0f)));
     return comp_mask;
   }
+
   ScalarF operator>(const ScalarF& rhs) const {
     ScalarF comp_mask(_mm256_and_ps(_mm256_cmp_ps(data_, rhs.data_, _CMP_GT_OS),
                                     _mm256_set1_ps(1.0f)));
     return comp_mask;
   }
+
   ScalarF operator>=(const ScalarF& rhs) const {
     // Convert mask to 0.0 or 1.0
     ScalarF comp_mask(_mm256_and_ps(_mm256_cmp_ps(data_, rhs.data_, _CMP_GE_OS),
                                     _mm256_set1_ps(1.0f)));
     return comp_mask;
   }
+
   ScalarF& operator=(const ScalarF& rhs) {
     data_ = rhs.data_;
     return *this;
   }
+
   ScalarF operator+(const float rhs) const {
     return ScalarF(_mm256_add_ps(data_, _mm256_set1_ps(rhs)));
   }
+
   ScalarF operator-() const {
     return ScalarF(_mm256_sub_ps(_mm256_set1_ps(0.0f), data_));
   }
+
   ScalarF operator-(const float rhs) const {
     return ScalarF(_mm256_sub_ps(data_, _mm256_set1_ps(rhs)));
   }
+
   ScalarF operator*(const float rhs) const {
     return ScalarF(_mm256_mul_ps(data_, _mm256_set1_ps(rhs)));
   }
+
   ScalarF operator/(const float rhs) const {
     return ScalarF(_mm256_div_ps(data_, _mm256_set1_ps(rhs)));
   }
+
   ScalarF operator+(const ScalarF& rhs) const {
     return ScalarF(_mm256_add_ps(data_, rhs.data_));
   }
+
   ScalarF operator-(const ScalarF& rhs) const {
     return ScalarF(_mm256_sub_ps(data_, rhs.data_));
   }
+
   ScalarF operator*(const ScalarF& rhs) const {
     return ScalarF(_mm256_mul_ps(data_, rhs.data_));
   }
+
   ScalarF operator/(const ScalarF& rhs) const {
     return ScalarF(_mm256_div_ps(data_, rhs.data_));
   }
+
   ScalarF& operator+=(const ScalarF& rhs) {
     data_ = _mm256_add_ps(data_, rhs.data_);
     return *this;
   }
+
   ScalarF& operator-=(const ScalarF& rhs) {
     data_ = _mm256_sub_ps(data_, rhs.data_);
     return *this;
   }
+
   ScalarF& operator*=(const ScalarF& rhs) {
     data_ = _mm256_mul_ps(data_, rhs.data_);
     return *this;
   }
+
   void StoreData(float* data) const { _mm256_store_ps(data, data_); }
+
   friend std::ostream& operator<<(std::ostream& outputStream,
                                   const ScalarF& scalar) {
     float multi_scalars[8];
@@ -883,4 +879,6 @@ class Matrix {
 }  // namespace simd
 }  // namespace nonlinear_optimizer
 
-#endif
+#endif  // NONLINEAR_OPTIMIZER_SIMD_HELPER_SIMD_HELPER_AMD_H_
+
+#endif  // define
