@@ -8,24 +8,25 @@
 #include "immintrin.h"
 
 // AMD CPU (Intel, AMD)
-#define _SIMD_DATA_STEP_DOUBLE 4
 #define _SIMD_DATA_STEP_FLOAT 8
 #define _SIMD_FLOAT __m256
-#define _SIMD_DOUBLE __m256d
 #define _SIMD_SET1 _mm256_set1_ps
 #define _SIMD_LOAD _mm256_load_ps
-#define _SIMD_RCP _mm256_rcp_ps
-#define _SIMD_DIV _mm256_div_ps
-#define _SIMD_MUL _mm256_mul_ps
 #define _SIMD_ADD _mm256_add_ps
 #define _SIMD_SUB _mm256_sub_ps
+#define _SIMD_MUL _mm256_mul_ps
+#define _SIMD_DIV _mm256_div_ps
+#define _SIMD_RCP _mm256_rcp_ps
 #define _SIMD_STORE _mm256_store_ps
+
+#define _SIMD_DATA_STEP_DOUBLE 4
+#define _SIMD_DOUBLE __m256d
 #define _SIMD_SET1_D _mm256_set1_pd
 #define _SIMD_LOAD_D _mm256_load_pd
-#define _SIMD_RCP_D _mm256_div_pd
-#define _SIMD_MUL_D _mm256_mul_pd
 #define _SIMD_ADD_D _mm256_add_pd
 #define _SIMD_SUB_D _mm256_sub_pd
+#define _SIMD_MUL_D _mm256_mul_pd
+#define _SIMD_RCP_D _mm256_div_pd
 #define _SIMD_STORE_D _mm256_store_pd
 
 namespace nonlinear_optimizer {
