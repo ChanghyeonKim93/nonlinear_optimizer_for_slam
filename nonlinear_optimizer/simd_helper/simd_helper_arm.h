@@ -14,9 +14,9 @@
 
 #define _SIMD_DATA_STEP_FLOAT 4
 #define _SIMD_FLOAT float32x4_t
-#define _SIMD_SET1 vmovq_n_f32
-#define _SIMD_LOAD vld1q_f32   // float32x4_t vld1q_f32(float32_t const *ptr)
-#define _SIMD_RCP vrecpeq_f32  // float32x4_t vrecpeq_f32(float32x4_t a)
+#define _SIMD_SET1 vdupq_n_f32  // == vmovq_n_f32
+#define _SIMD_LOAD vld1q_f32    // float32x4_t vld1q_f32(float32_t const *ptr)
+#define _SIMD_RCP vrecpeq_f32   // float32x4_t vrecpeq_f32(float32x4_t a)
 #define _SIMD_DIV \
   vdivq_f32  // float32x4_t vdivq_f32(float32x4_t a, float32x4_t b)
 #define _SIMD_MUL \
@@ -30,75 +30,78 @@
 #define _SIMD_ROUND_FLOAT vrndaq_f32  // float32x4_t vrndq_f32(float32x4_t a)
 #define _SIMD_SQRT_FLOAT vsqrtq_f32   // float32x4_t vsqrtq_f32(float32x4_t a)
 
+namespace nonlinear_optimizer {
+
+namespace simd {
+
 class ScalarF {
  public:
-  ScalarF() { data_ = _mm256_setzero_ps(); }
+  ScalarF() { data_ = vmovq_n_f32(0.0f); }
 
-  explicit ScalarF(const float scalar) { data_ = _mm256_set1_ps(scalar); }
+  explicit ScalarF(const float scalar) { data_ = vmovq_n_f32(scalar); }
 
   explicit ScalarF(const float n1, const float n2, const float n3,
-                   const float n4, const float n5, const float n6,
-                   const float n7, const float n8) {
-    data_ = _mm256_set_ps(n8, n7, n6, n5, n4, n3, n2, n1);
+                   const float n4) {
+    data_ = vdupq_n_f32(0.0f);
+    data_ = vsetq_lane_f32(n1, data_, 0);
+    data_ = vsetq_lane_f32(n2, data_, 1);
+    data_ = vsetq_lane_f32(n3, data_, 2);
+    data_ = vsetq_lane_f32(n4, data_, 3);
   }
 
-  explicit ScalarF(const float* rhs) { data_ = _mm256_load_ps(rhs); }
+  explicit ScalarF(const float* rhs) { data_ = vld1q_f32(rhs); }
 
-  ScalarF(const __m256& rhs) { data_ = rhs; }
+  ScalarF(const float32x4_t& rhs) { data_ = rhs; }
 
   ScalarF(const ScalarF& rhs) { data_ = rhs.data_; }
 
+  // Note: vcgtq (a > b), vcgeq (a >= b), vcltq (a < b), vcleq (a <= b),
+  // vceqq (a == b), vcneq (a != b)
   ScalarF operator<(const float scalar) const {
-    ScalarF comp_mask(
-        _mm256_and_ps(_mm256_cmp_ps(data_, _mm256_set1_ps(scalar), _CMP_LT_OS),
-                      _mm256_set1_ps(1.0f)));
-    return comp_mask;
-  }
-
-  ScalarF operator<=(const float scalar) const {
-    ScalarF comp_mask(
-        _mm256_and_ps(_mm256_cmp_ps(data_, _mm256_set1_ps(scalar), _CMP_LE_OS),
-                      _mm256_set1_ps(1.0f)));
-    return comp_mask;
-  }
-
-  ScalarF operator>(const float scalar) const {
-    ScalarF comp_mask(
-        _mm256_and_ps(_mm256_cmp_ps(data_, _mm256_set1_ps(scalar), _CMP_GT_OS),
-                      _mm256_set1_ps(1.0f)));
-    return comp_mask;
-  }
-
-  ScalarF operator>=(const float scalar) const {
-    // Convert mask to 0.0 or 1.0
-    ScalarF comp_mask(
-        _mm256_and_ps(_mm256_cmp_ps(data_, _mm256_set1_ps(scalar), _CMP_GE_OS),
-                      _mm256_set1_ps(1.0f)));
+    ScalarF comp_mask(vbslq_f32(vcltq_f32(data_, vdupq_n_f32(scalar)),
+                                vdupq_n_f32(1.0f), vdupq_n_f32(0.0f)));
     return comp_mask;
   }
 
   ScalarF operator<(const ScalarF& rhs) const {
-    ScalarF comp_mask(_mm256_and_ps(_mm256_cmp_ps(data_, rhs.data_, _CMP_LT_OS),
-                                    _mm256_set1_ps(1.0f)));
+    ScalarF comp_mask(vbslq_f32(vcltq_f32(data_, rhs.data_), vdupq_n_f32(1.0f),
+                                vdupq_n_f32(0.0f)));
+    return comp_mask;
+  }
+
+  ScalarF operator<=(const float scalar) const {
+    ScalarF comp_mask(vbslq_f32(vcleq_f32(data_, vdupq_n_f32(scalar)),
+                                vdupq_n_f32(1.0f), vdupq_n_f32(0.0f)));
     return comp_mask;
   }
 
   ScalarF operator<=(const ScalarF& rhs) const {
-    ScalarF comp_mask(_mm256_and_ps(_mm256_cmp_ps(data_, rhs.data_, _CMP_LE_OS),
-                                    _mm256_set1_ps(1.0f)));
+    ScalarF comp_mask(vbslq_f32(vcleq_f32(data_, rhs.data_), vdupq_n_f32(1.0f),
+                                vdupq_n_f32(0.0f)));
+    return comp_mask;
+  }
+
+  ScalarF operator>(const float scalar) const {
+    ScalarF comp_mask(vbslq_f32(vcgtq_f32(data_, vdupq_n_f32(scalar)),
+                                vdupq_n_f32(1.0f), vdupq_n_f32(0.0f)));
     return comp_mask;
   }
 
   ScalarF operator>(const ScalarF& rhs) const {
-    ScalarF comp_mask(_mm256_and_ps(_mm256_cmp_ps(data_, rhs.data_, _CMP_GT_OS),
-                                    _mm256_set1_ps(1.0f)));
+    ScalarF comp_mask(vbslq_f32(vcgtq_f32(data_, rhs.data_), vdupq_n_f32(1.0f),
+                                vdupq_n_f32(0.0f)));
+    return comp_mask;
+  }
+
+  ScalarF operator>=(const float scalar) const {
+    ScalarF comp_mask(vbslq_f32(vcgeq_f32(data_, vdupq_n_f32(scalar)),
+                                vdupq_n_f32(1.0f), vdupq_n_f32(0.0f)));
     return comp_mask;
   }
 
   ScalarF operator>=(const ScalarF& rhs) const {
-    // Convert mask to 0.0 or 1.0
-    ScalarF comp_mask(_mm256_and_ps(_mm256_cmp_ps(data_, rhs.data_, _CMP_GE_OS),
-                                    _mm256_set1_ps(1.0f)));
+    ScalarF comp_mask(vbslq_f32(vcgeq_f32(data_, rhs.data_), vdupq_n_f32(1.0f),
+                                vdupq_n_f32(0.0f)));
     return comp_mask;
   }
 
@@ -108,78 +111,74 @@ class ScalarF {
   }
 
   ScalarF operator+(const float rhs) const {
-    return ScalarF(_mm256_add_ps(data_, _mm256_set1_ps(rhs)));
-  }
-
-  ScalarF operator-() const {
-    return ScalarF(_mm256_sub_ps(_mm256_set1_ps(0.0f), data_));
-  }
-
-  ScalarF operator-(const float rhs) const {
-    return ScalarF(_mm256_sub_ps(data_, _mm256_set1_ps(rhs)));
-  }
-
-  ScalarF operator*(const float rhs) const {
-    return ScalarF(_mm256_mul_ps(data_, _mm256_set1_ps(rhs)));
-  }
-
-  ScalarF operator/(const float rhs) const {
-    return ScalarF(_mm256_div_ps(data_, _mm256_set1_ps(rhs)));
+    return ScalarF(vaddq_f32(data_, vdupq_n_f32(rhs)));
   }
 
   ScalarF operator+(const ScalarF& rhs) const {
-    return ScalarF(_mm256_add_ps(data_, rhs.data_));
+    return ScalarF(vaddq_f32(data_, rhs.data_));
+  }
+
+  ScalarF operator-() const {
+    return ScalarF(vsubq_f32(vdupq_n_f32(0.0f), data_));
   }
 
   ScalarF operator-(const ScalarF& rhs) const {
-    return ScalarF(_mm256_sub_ps(data_, rhs.data_));
+    return ScalarF(vsubq_f32(data_, rhs.data_));
+  }
+
+  ScalarF operator-(const float rhs) const {
+    return ScalarF(vsubq_f32(data_, vdupq_n_f32(rhs)));
+  }
+
+  ScalarF operator*(const float rhs) const {
+    return ScalarF(vmulq_f32(data_, vdupq_n_f32(rhs)));
   }
 
   ScalarF operator*(const ScalarF& rhs) const {
-    return ScalarF(_mm256_mul_ps(data_, rhs.data_));
+    return ScalarF(vmulq_f32(data_, rhs.data_));
+  }
+
+  ScalarF operator/(const float rhs) const {
+    return ScalarF(vdivq_f32(data_, vdupq_n_f32(rhs)));
   }
 
   ScalarF operator/(const ScalarF& rhs) const {
-    return ScalarF(_mm256_div_ps(data_, rhs.data_));
+    return ScalarF(vdivq_f32(data_, rhs.data_));
   }
 
   ScalarF& operator+=(const ScalarF& rhs) {
-    data_ = _mm256_add_ps(data_, rhs.data_);
+    data_ = vaddq_f32(data_, rhs.data_);
     return *this;
   }
 
   ScalarF& operator-=(const ScalarF& rhs) {
-    data_ = _mm256_sub_ps(data_, rhs.data_);
+    data_ = vsubq_f32(data_, rhs.data_);
     return *this;
   }
 
   ScalarF& operator*=(const ScalarF& rhs) {
-    data_ = _mm256_mul_ps(data_, rhs.data_);
+    data_ = vmulq_f32(data_, rhs.data_);
     return *this;
   }
 
-  void StoreData(float* data) const { _mm256_store_ps(data, data_); }
+  void StoreData(float* data) const { vst1q_f32(data, data_); }
 
   friend std::ostream& operator<<(std::ostream& outputStream,
                                   const ScalarF& scalar) {
-    float multi_scalars[8];
+    float multi_scalars[3];
     scalar.StoreData(multi_scalars);
     std::cout << "[["
               << "[" << multi_scalars[0] << "],\n"
               << "[" << multi_scalars[1] << "],\n"
               << "[" << multi_scalars[2] << "],\n"
-              << "[" << multi_scalars[3] << "],\n"
-              << "[" << multi_scalars[4] << "],\n"
-              << "[" << multi_scalars[5] << "],\n"
-              << "[" << multi_scalars[6] << "],\n"
-              << "[" << multi_scalars[7] << "]]" << std::endl;
+              << "[" << multi_scalars[3] << "]]" << std::endl;
     return outputStream;
   }
 
   static size_t GetDataStep() { return _SIMD_DATA_STEP_FLOAT; }
 
  private:
-  __m256 data_;
+  float32x4_t data_;
 };
 
 /// @brief Vector of Simd data. Consider four 3D vectors, v1, v2, v3, v4.
@@ -189,12 +188,12 @@ class ScalarF {
 /// @tparam kRow
 template <int kRow>
 class VectorF {
-  const size_t kDataStep{8};
+  const size_t kDataStep{4};
   using EigenVec = Eigen::Matrix<float, kRow, 1>;
 
  public:
   VectorF() {
-    for (int row = 0; row < kRow; ++row) data_[row] = _mm256_set1_ps(0.0f);
+    for (int row = 0; row < kRow; ++row) data_[row] = vdupq_n_f32(0.0f);
   }
   ~VectorF() {}
 
@@ -313,14 +312,13 @@ class VectorF {
 /// @tparam kCol Matrix column size
 template <int kRow, int kCol>
 class MatrixF {
-  const size_t kDataStep{8};
+  const size_t kDataStep{4};
   using EigenMat = Eigen::Matrix<float, kRow, kCol>;
 
  public:
   MatrixF() {
     for (int row = 0; row < kRow; ++row)
-      for (int col = 0; col < kCol; ++col)
-        data_[row][col] = _mm256_setzero_ps();
+      for (int col = 0; col < kCol; ++col) data_[row][col] = vdupq_n_f32(0.0f);
   }
   ~MatrixF() {}
 
@@ -459,6 +457,9 @@ class MatrixF {
  private:
   ScalarF data_[kRow][kCol];
 };
+
+}  // namespace simd
+}  // namespace nonlinear_optimizer
 
 #endif
 

@@ -78,11 +78,11 @@ bool ReprojectionErrorMinimizerAnalyticSIMD::Solve(
       simd::ScalarF loss__(sq_r__);
       simd::ScalarF weight__(1.0);
       if (loss_function_ != nullptr) {
-        float sq_r_buf[8];
+        float sq_r_buf[_SIMD_DATA_STEP_FLOAT];
         sq_r__.StoreData(sq_r_buf);
-        float loss_buf[8];
-        float weight_buf[8];
-        for (int k = 0; k < 8; ++k) {
+        float loss_buf[_SIMD_DATA_STEP_FLOAT];
+        float weight_buf[_SIMD_DATA_STEP_FLOAT];
+        for (int k = 0; k < _SIMD_DATA_STEP_FLOAT; ++k) {
           double loss_output[3] = {0.0, 0.0, 0.0};
           loss_function_->Evaluate(sq_r_buf[k], loss_output);
           loss_buf[k] = loss_output[0];
@@ -139,22 +139,21 @@ bool ReprojectionErrorMinimizerAnalyticSIMD::Solve(
       cost__ += loss__;
     }
 
-    float buf[8];
+    float buf[_SIMD_DATA_STEP_FLOAT];
     cost__.StoreData(buf);
     float cost = 0.0;
-    cost +=
-        (buf[0] + buf[1] + buf[2] + buf[3] + buf[4] + buf[5] + buf[6] + buf[7]);
+    for (int kk = 0; kk < _SIMD_DATA_STEP_FLOAT; ++kk) cost += buf[kk];
 
     Mat6x6 hessian{Mat6x6::Zero()};
     Vec6 gradient{Vec6::Zero()};
     for (int ii = 0; ii < 6; ++ii) {
       gradient__(ii).StoreData(buf);
-      gradient(ii) += (buf[0] + buf[1] + buf[2] + buf[3] + buf[4] + buf[5] +
-                       buf[6] + buf[7]);
+      for (int kk = 0; kk < _SIMD_DATA_STEP_FLOAT; ++kk)
+        gradient(ii) += buf[kk];
       for (int jj = ii; jj < 6; ++jj) {
         hessian__(ii, jj).StoreData(buf);
-        hessian(ii, jj) += (buf[0] + buf[1] + buf[2] + buf[3] + buf[4] +
-                            buf[5] + buf[6] + buf[7]);
+        for (int kk = 0; kk < _SIMD_DATA_STEP_FLOAT; ++kk)
+          hessian(ii, jj) += buf[kk];
       }
     }
 
