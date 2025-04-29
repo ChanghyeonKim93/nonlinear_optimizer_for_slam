@@ -2,6 +2,16 @@
 SLAM에서 주로 다루어지는 전형화 된 문제들을 푸는 nonlinear optimizer 구현 모음
 
 ## 1. Installation
+### Dependencies
+#### Flann
+```
+sudo apt install libflann-dev
+```
+#### Ceres solver
+```
+sudo apt install libceres-dev
+```
+### Clone repository
 ```
 git clone "https://github.com/ChanghyeonKim93/nonlinear_optimizer_for_slam.git"
 cd nonlinear_optimizer_for_slam
