@@ -259,7 +259,7 @@ class VectorD {
  private:
   ScalarD data_[kRow];
   template <int kMatRow, int kMatCol>
-  friend class Matrix;
+  friend class MatrixD;
 };
 
 }  // namespace simd
