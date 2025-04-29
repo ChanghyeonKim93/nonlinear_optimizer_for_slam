@@ -14,9 +14,7 @@ ReprojectionErrorMinimizerAnalyticSIMD::
 bool ReprojectionErrorMinimizerAnalyticSIMD::Solve(
     const Options& options, const std::vector<Correspondence>& correspondences,
     const CameraIntrinsics& camera_intrinsics, Pose* pose) {
-  using Vec3f = Eigen::Vector3f;
   using Mat3x3f = Eigen::Matrix3f;
-  using Orientationf = Eigen::Quaternionf;
 
   AlignedBuffer abuf(correspondences.size());
   for (size_t index = 0; index < correspondences.size(); ++index) {

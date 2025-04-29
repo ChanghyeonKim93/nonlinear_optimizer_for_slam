@@ -30,43 +30,43 @@ bool MahalanobisDistanceMinimizerAnalyticSIMD::SolveDoubleMatrix(
   for (; iteration < options.max_iterations; ++iteration) {
     const Mat3x3 opt_R = optimized_orientation.toRotationMatrix();
     const Vec3 opt_t = optimized_translation;
-    simd::Matrix<3, 3> R__(opt_R);
-    simd::Vector<3> t__(opt_t);
+    simd::MatrixD<3, 3> R__(opt_R);
+    simd::VectorD<3> t__(opt_t);
 
-    simd::Vector<6> gradient__(Eigen::Matrix<double, 6, 1>::Zero());
-    simd::Matrix<6, 6> hessian__(Eigen::Matrix<double, 6, 6>::Zero());
-    simd::Scalar cost__(0.0);
-    const size_t stride = simd::Scalar::GetDataStep();
+    simd::VectorD<6> gradient__(Eigen::Matrix<double, 6, 1>::Zero());
+    simd::MatrixD<6, 6> hessian__(Eigen::Matrix<double, 6, 6>::Zero());
+    simd::ScalarD cost__(0.0);
+    const size_t stride = simd::ScalarD::GetDataStep();
     const int num_stride = correspondences.size() / stride;
     for (size_t point_idx = 0; point_idx < num_stride * stride;
          point_idx += stride) {
-      simd::Vector<3> p__;
-      simd::Vector<3> mu__;
-      simd::Matrix<3, 3> sqrt_info__;
+      simd::VectorD<3> p__;
+      simd::VectorD<3> mu__;
+      simd::MatrixD<3, 3> sqrt_info__;
 
       const auto& corr1 = correspondences.at(point_idx);
       const auto& corr2 = correspondences.at(point_idx + 1);
       const auto& corr3 = correspondences.at(point_idx + 2);
       const auto& corr4 = correspondences.at(point_idx + 3);
-      p__ =
-          simd::Vector<3>({corr1.point, corr2.point, corr3.point, corr4.point});
-      mu__ = simd::Vector<3>(
+      p__ = simd::VectorD<3>(
+          {corr1.point, corr2.point, corr3.point, corr4.point});
+      mu__ = simd::VectorD<3>(
           {corr1.ndt.mean, corr2.ndt.mean, corr3.ndt.mean, corr4.ndt.mean});
-      sqrt_info__ = simd::Matrix<3, 3>(
+      sqrt_info__ = simd::MatrixD<3, 3>(
           {corr1.ndt.sqrt_information, corr2.ndt.sqrt_information,
            corr3.ndt.sqrt_information, corr4.ndt.sqrt_information});
 
       // clang-format off
       // pw = R*p + t
-      const simd::Vector<3> pw__ = R__ * p__ + t__;
+      const simd::VectorD<3> pw__ = R__ * p__ + t__;
 
       // e_i = pw - mean
-      const simd::Vector<3> e__ = pw__ - mu__;
+      const simd::VectorD<3> e__ = pw__ - mu__;
 
       // r = sqrt_info * e
-      const simd::Vector<3> r__ = sqrt_info__ * e__;
+      const simd::VectorD<3> r__ = sqrt_info__ * e__;
 
-      simd::Matrix<3,3> minus_R_skewp__;
+      simd::MatrixD<3,3> minus_R_skewp__;
       minus_R_skewp__(0, 0) =  R__(0, 2) * p__(1) - R__(0, 1) * p__(2);
       minus_R_skewp__(1, 0) =  R__(1, 2) * p__(1) - R__(1, 1) * p__(2);
       minus_R_skewp__(2, 0) =  R__(2, 2) * p__(1) - R__(2, 1) * p__(2);
@@ -76,10 +76,10 @@ bool MahalanobisDistanceMinimizerAnalyticSIMD::SolveDoubleMatrix(
       minus_R_skewp__(0, 2) =  R__(0, 1) * p__(0) - R__(0, 0) * p__(1);
       minus_R_skewp__(1, 2) =  R__(1, 1) * p__(0) - R__(1, 0) * p__(1);
       minus_R_skewp__(2, 2) =  R__(2, 1) * p__(0) - R__(2, 0) * p__(1);
-      const simd::Matrix<3,3> sqrt_info_minus_R_skewp_ = sqrt_info__ * minus_R_skewp__;
+      const simd::MatrixD<3,3> sqrt_info_minus_R_skewp_ = sqrt_info__ * minus_R_skewp__;
 
       // Direct calculation is far faster than helper operator.
-      simd::Matrix<3,6> J__;
+      simd::MatrixD<3,6> J__;
       // J__(0,3) = sqrt_info__(0,0) * minus_R_skewp__(0,0) + sqrt_info__(0,1) * minus_R_skewp__(1,0) + sqrt_info__(0,2) * minus_R_skewp__(2,0);
       // J__(0,4) = sqrt_info__(0,0) * minus_R_skewp__(0,1) + sqrt_info__(0,1) * minus_R_skewp__(1,1) + sqrt_info__(0,2) * minus_R_skewp__(2,1);
       // J__(0,5) = sqrt_info__(0,0) * minus_R_skewp__(0,2) + sqrt_info__(0,1) * minus_R_skewp__(1,2) + sqrt_info__(0,2) * minus_R_skewp__(2,2);
@@ -99,9 +99,9 @@ bool MahalanobisDistanceMinimizerAnalyticSIMD::SolveDoubleMatrix(
 
       // Compute loss and weight,
       // and add the local gradient and hessian to the global ones
-      simd::Scalar sq_r__ = r__.GetNorm();
-      simd::Scalar loss__(sq_r__);
-      simd::Scalar weight__(1.0);
+      simd::ScalarD sq_r__ = r__.GetNorm();
+      simd::ScalarD loss__(sq_r__);
+      simd::ScalarD weight__(1.0);
       if (loss_function_ != nullptr) {
         double sq_r_buf[4];
         sq_r__.StoreData(sq_r_buf);
@@ -113,8 +113,8 @@ bool MahalanobisDistanceMinimizerAnalyticSIMD::SolveDoubleMatrix(
           loss_buf[k] = loss_output[0];
           weight_buf[k] = loss_output[1];
         }
-        loss__ = simd::Scalar(loss_buf);
-        weight__ = simd::Scalar(weight_buf);
+        loss__ = simd::ScalarD(loss_buf);
+        weight__ = simd::ScalarD(weight_buf);
       }
 
       // g(i) += (J(0,i)*r(0) + J(1,i)*r(1) + J(2,i)*r(2))
@@ -587,18 +587,18 @@ bool MahalanobisDistanceMinimizerAnalyticSIMD::Solve(
     const Mat3x3 opt_R = optimized_orientation.toRotationMatrix();
     const Vec3 opt_t = optimized_translation;
 
-    simd::Scalar R__[3][3];
-    simd::Scalar t__[3];
+    simd::ScalarD R__[3][3];
+    simd::ScalarD t__[3];
     for (int row = 0; row < 3; ++row) {
-      t__[row] = simd::Scalar(opt_t(row));
+      t__[row] = simd::ScalarD(opt_t(row));
       for (int col = 0; col < 3; ++col)
-        R__[row][col] = simd::Scalar(opt_R(row, col));
+        R__[row][col] = simd::ScalarD(opt_R(row, col));
     }
 
-    simd::Scalar gradient__[6];
-    simd::Scalar hessian__[6][6];
-    simd::Scalar cost__;
-    const size_t stride = simd::Scalar::GetDataStep();
+    simd::ScalarD gradient__[6];
+    simd::ScalarD hessian__[6][6];
+    simd::ScalarD cost__;
+    const size_t stride = simd::ScalarD::GetDataStep();
     const int num_stride = correspondences.size() / stride;
     for (size_t point_idx = 0; point_idx < num_stride * stride;
          point_idx += stride) {
@@ -628,51 +628,51 @@ bool MahalanobisDistanceMinimizerAnalyticSIMD::Solve(
         sqrt_info_buf[2][2][k] = corr.ndt.sqrt_information(2, 2);
       }
 
-      simd::Scalar p__[3];
-      p__[0] = simd::Scalar(px_buf);
-      p__[1] = simd::Scalar(py_buf);
-      p__[2] = simd::Scalar(pz_buf);
+      simd::ScalarD p__[3];
+      p__[0] = simd::ScalarD(px_buf);
+      p__[1] = simd::ScalarD(py_buf);
+      p__[2] = simd::ScalarD(pz_buf);
 
-      simd::Scalar mu__[3];
-      mu__[0] = simd::Scalar(mx_buf);
-      mu__[1] = simd::Scalar(my_buf);
-      mu__[2] = simd::Scalar(mz_buf);
+      simd::ScalarD mu__[3];
+      mu__[0] = simd::ScalarD(mx_buf);
+      mu__[1] = simd::ScalarD(my_buf);
+      mu__[2] = simd::ScalarD(mz_buf);
 
-      simd::Scalar sqrt_info__[3][3];
-      sqrt_info__[0][0] = simd::Scalar(sqrt_info_buf[0][0]);
-      sqrt_info__[0][1] = simd::Scalar(sqrt_info_buf[0][1]);
-      sqrt_info__[0][2] = simd::Scalar(sqrt_info_buf[0][2]);
-      sqrt_info__[1][0] = simd::Scalar(sqrt_info_buf[1][0]);
-      sqrt_info__[1][1] = simd::Scalar(sqrt_info_buf[1][1]);
-      sqrt_info__[1][2] = simd::Scalar(sqrt_info_buf[1][2]);
-      sqrt_info__[2][0] = simd::Scalar(sqrt_info_buf[2][0]);
-      sqrt_info__[2][1] = simd::Scalar(sqrt_info_buf[2][1]);
-      sqrt_info__[2][2] = simd::Scalar(sqrt_info_buf[2][2]);
+      simd::ScalarD sqrt_info__[3][3];
+      sqrt_info__[0][0] = simd::ScalarD(sqrt_info_buf[0][0]);
+      sqrt_info__[0][1] = simd::ScalarD(sqrt_info_buf[0][1]);
+      sqrt_info__[0][2] = simd::ScalarD(sqrt_info_buf[0][2]);
+      sqrt_info__[1][0] = simd::ScalarD(sqrt_info_buf[1][0]);
+      sqrt_info__[1][1] = simd::ScalarD(sqrt_info_buf[1][1]);
+      sqrt_info__[1][2] = simd::ScalarD(sqrt_info_buf[1][2]);
+      sqrt_info__[2][0] = simd::ScalarD(sqrt_info_buf[2][0]);
+      sqrt_info__[2][1] = simd::ScalarD(sqrt_info_buf[2][1]);
+      sqrt_info__[2][2] = simd::ScalarD(sqrt_info_buf[2][2]);
 
       // clang-format off
       // pw = R*p + t
-      simd::Scalar pw__[3];
+      simd::ScalarD pw__[3];
       pw__[0] = R__[0][0] * p__[0] + R__[0][1] * p__[1] + R__[0][2] * p__[2] + t__[0];
       pw__[1] = R__[1][0] * p__[0] + R__[1][1] * p__[1] + R__[1][2] * p__[2] + t__[1];
       pw__[2] = R__[2][0] * p__[0] + R__[2][1] * p__[1] + R__[2][2] * p__[2] + t__[2];
 
       // e_i = pw - mean
-      simd::Scalar e__[3];
+      simd::ScalarD e__[3];
       e__[0] = pw__[0] - mu__[0];
       e__[1] = pw__[1] - mu__[1];
       e__[2] = pw__[2] - mu__[2];
       // r = sqrt_info * e
-      simd::Scalar r__[3];
+      simd::ScalarD r__[3];
       r__[0] = sqrt_info__[0][0] * e__[0] + sqrt_info__[0][1] * e__[1] + sqrt_info__[0][2] * e__[2];
       r__[1] = sqrt_info__[1][0] * e__[0] + sqrt_info__[1][1] * e__[1] + sqrt_info__[1][2] * e__[2];
       r__[2] = sqrt_info__[2][0] * e__[0] + sqrt_info__[2][1] * e__[1] + sqrt_info__[2][2] * e__[2];
 
-      simd::Scalar J__[3][6];
+      simd::ScalarD J__[3][6];
       J__[0][0] = sqrt_info__[0][0]; J__[0][1] = sqrt_info__[0][1]; J__[0][2] = sqrt_info__[0][2];
       J__[1][0] = sqrt_info__[1][0]; J__[1][1] = sqrt_info__[1][1]; J__[1][2] = sqrt_info__[1][2];
       J__[2][0] = sqrt_info__[2][0]; J__[2][1] = sqrt_info__[2][1]; J__[2][2] = sqrt_info__[2][2];
 
-      simd::Scalar minus_R_skewp__[3][3];
+      simd::ScalarD minus_R_skewp__[3][3];
       minus_R_skewp__[0][0] =  R__[0][2] * p__[1] - R__[0][1] * p__[2];
       minus_R_skewp__[1][0] =  R__[1][2] * p__[1] - R__[1][1] * p__[2];
       minus_R_skewp__[2][0] =  R__[2][2] * p__[1] - R__[2][1] * p__[2];
@@ -698,9 +698,10 @@ bool MahalanobisDistanceMinimizerAnalyticSIMD::Solve(
 
       // Compute loss and weight,
       // and add the local gradient and hessian to the global ones
-      simd::Scalar sq_r__ = r__[0] * r__[0] + r__[1] * r__[1] + r__[2] * r__[2];
-      simd::Scalar loss__(sq_r__);
-      simd::Scalar weight__(1.0);
+      simd::ScalarD sq_r__ =
+          r__[0] * r__[0] + r__[1] * r__[1] + r__[2] * r__[2];
+      simd::ScalarD loss__(sq_r__);
+      simd::ScalarD weight__(1.0);
       if (loss_function_ != nullptr) {
         double sq_r_buf[4];
         sq_r__.StoreData(sq_r_buf);
@@ -712,8 +713,8 @@ bool MahalanobisDistanceMinimizerAnalyticSIMD::Solve(
           loss_buf[k] = loss_output[0];
           weight_buf[k] = loss_output[1];
         }
-        loss__ = simd::Scalar(loss_buf);
-        weight__ = simd::Scalar(weight_buf);
+        loss__ = simd::ScalarD(loss_buf);
+        weight__ = simd::ScalarD(weight_buf);
       }
 
       // g(i) += (J(0,i)*r(0) + J(1,i)*r(1) + J(2,i)*r(2))

@@ -77,9 +77,9 @@ void TestDouble(const std::vector<double>& d1, const std::vector<double>& d2,
     d2_ptr[1] = d2[i + 1];
     d2_ptr[2] = d2[i + 2];
     d2_ptr[3] = d2[i + 3];
-    simd::Scalar s1(d1_ptr);
-    simd::Scalar s2(d2_ptr);
-    simd::Scalar rs = COMPUTE_COMPLEX_ARITHMETIC(s1, s2);
+    simd::ScalarD s1(d1_ptr);
+    simd::ScalarD s2(d2_ptr);
+    simd::ScalarD rs = COMPUTE_COMPLEX_ARITHMETIC(s1, s2);
     rs.StoreData(res);
     rd->push_back(res[0]);
     rd->push_back(res[1]);
@@ -164,8 +164,8 @@ int main(int, char**) {
   Eigen::Matrix<double, 3, 1> v2(4, 5, 6);
   Eigen::Matrix<double, 3, 1> v3(7, 8, 9);
   Eigen::Matrix<double, 3, 1> v4(10, 11, 12);
-  simd::Vector<3> va__({v1, v2, v1, v2});
-  simd::Vector<3> vb__({v3, v4, v4, v3});
+  simd::VectorD<3> va__({v1, v2, v1, v2});
+  simd::VectorD<3> vb__({v3, v4, v4, v3});
   const auto vc__ = va__ + vb__;
 
   std::vector<Eigen::Matrix<double, 3, 1>> res_list;
@@ -179,10 +179,10 @@ int main(int, char**) {
   Eigen::Matrix<double, 3, 1> p;
   p << 2, 4, 6;
 
-  simd::Matrix<3, 3> R__(R);
-  simd::Vector<3> p__(p);
+  simd::MatrixD<3, 3> R__(R);
+  simd::VectorD<3> p__(p);
 
-  const simd::Vector<3> x__ = R__ * p__;
+  const simd::VectorD<3> x__ = R__ * p__;
   std::cerr << "Sol: " << (R * p).transpose() << std::endl;
   std::vector<Eigen::Vector3d> res;
   x__.StoreData(&res);
