@@ -12,6 +12,7 @@
 #include "nonlinear_optimizer/mahalanobis_distance_minimizer/mahalanobis_distance_minimizer.h"
 #include "nonlinear_optimizer/mahalanobis_distance_minimizer/mahalanobis_distance_minimizer_analytic.h"
 #include "nonlinear_optimizer/mahalanobis_distance_minimizer/mahalanobis_distance_minimizer_analytic_simd.h"
+#include "nonlinear_optimizer/mahalanobis_distance_minimizer/mahalanobis_distance_minimizer_analytic_simd_various.h"
 #include "nonlinear_optimizer/time_checker.h"
 #include "nonlinear_optimizer/types.h"
 
@@ -415,15 +416,15 @@ Pose OptimizePoseAnalyticSimdHelperFloatScalar(
         MatchPointCloud(ndt_map, local_points, optimized_pose);
 
     std::unique_ptr<nonlinear_optimizer::mahalanobis_distance_minimizer::
-                        MahalanobisDistanceMinimizerAnalyticSIMD>
+                        MahalanobisDistanceMinimizerAnalyticSIMDVarious>
         optim = std::make_unique<
             nonlinear_optimizer::mahalanobis_distance_minimizer::
-                MahalanobisDistanceMinimizerAnalyticSIMD>();
+                MahalanobisDistanceMinimizerAnalyticSIMDVarious>();
     optim->SetLossFunction(
         std::make_shared<nonlinear_optimizer::ExponentialLossFunction>(1.0,
                                                                        1.0));
 
-    optim->SolveFloat(options, correspondences, &optimized_pose);
+    optim->Solve(options, correspondences, &optimized_pose);
 
     Pose pose_diff = optimized_pose.inverse() * last_optimized_pose;
     if (pose_diff.translation().norm() < 1e-5 &&
@@ -450,10 +451,10 @@ Pose OptimizePoseAnalyticSimdHelperFloatScalarAligned(
         MatchPointCloud(ndt_map, local_points, optimized_pose);
 
     std::unique_ptr<nonlinear_optimizer::mahalanobis_distance_minimizer::
-                        MahalanobisDistanceMinimizerAnalyticSIMD>
+                        MahalanobisDistanceMinimizerAnalyticSIMDVarious>
         optim = std::make_unique<
             nonlinear_optimizer::mahalanobis_distance_minimizer::
-                MahalanobisDistanceMinimizerAnalyticSIMD>();
+                MahalanobisDistanceMinimizerAnalyticSIMDVarious>();
     optim->SetLossFunction(
         std::make_shared<nonlinear_optimizer::ExponentialLossFunction>(1.0,
                                                                        1.0));
@@ -485,10 +486,10 @@ Pose OptimizePoseAnalyticSimdIntrinsicFloatAligned(
         MatchPointCloud(ndt_map, local_points, optimized_pose);
 
     std::unique_ptr<nonlinear_optimizer::mahalanobis_distance_minimizer::
-                        MahalanobisDistanceMinimizerAnalyticSIMD>
+                        MahalanobisDistanceMinimizerAnalyticSIMDVarious>
         optim = std::make_unique<
             nonlinear_optimizer::mahalanobis_distance_minimizer::
-                MahalanobisDistanceMinimizerAnalyticSIMD>();
+                MahalanobisDistanceMinimizerAnalyticSIMDVarious>();
     optim->SetLossFunction(
         std::make_shared<nonlinear_optimizer::ExponentialLossFunction>(1.0,
                                                                        1.0));
@@ -521,10 +522,10 @@ Pose OptimizePoseAnalyticSimdHelperDoubleMatrix(
         MatchPointCloud(ndt_map, local_points, optimized_pose);
 
     std::unique_ptr<nonlinear_optimizer::mahalanobis_distance_minimizer::
-                        MahalanobisDistanceMinimizerAnalyticSIMD>
+                        MahalanobisDistanceMinimizerAnalyticSIMDVarious>
         optim = std::make_unique<
             nonlinear_optimizer::mahalanobis_distance_minimizer::
-                MahalanobisDistanceMinimizerAnalyticSIMD>();
+                MahalanobisDistanceMinimizerAnalyticSIMDVarious>();
     optim->SetLossFunction(
         std::make_shared<nonlinear_optimizer::ExponentialLossFunction>(1.0,
                                                                        1.0));
@@ -556,10 +557,10 @@ Pose OptimizePoseAnalyticSimdHelperFloatMatrix(
         MatchPointCloud(ndt_map, local_points, optimized_pose);
 
     std::unique_ptr<nonlinear_optimizer::mahalanobis_distance_minimizer::
-                        MahalanobisDistanceMinimizerAnalyticSIMD>
+                        MahalanobisDistanceMinimizerAnalyticSIMDVarious>
         optim = std::make_unique<
             nonlinear_optimizer::mahalanobis_distance_minimizer::
-                MahalanobisDistanceMinimizerAnalyticSIMD>();
+                MahalanobisDistanceMinimizerAnalyticSIMDVarious>();
     optim->SetLossFunction(
         std::make_shared<nonlinear_optimizer::ExponentialLossFunction>(1.0,
                                                                        1.0));
@@ -591,10 +592,10 @@ Pose OptimizePoseAnalyticSimdHelperFloatMatrixAligned(
         MatchPointCloud(ndt_map, local_points, optimized_pose);
 
     std::unique_ptr<nonlinear_optimizer::mahalanobis_distance_minimizer::
-                        MahalanobisDistanceMinimizerAnalyticSIMD>
+                        MahalanobisDistanceMinimizerAnalyticSIMDVarious>
         optim = std::make_unique<
             nonlinear_optimizer::mahalanobis_distance_minimizer::
-                MahalanobisDistanceMinimizerAnalyticSIMD>();
+                MahalanobisDistanceMinimizerAnalyticSIMDVarious>();
     optim->SetLossFunction(
         std::make_shared<nonlinear_optimizer::ExponentialLossFunction>(1.0,
                                                                        1.0));

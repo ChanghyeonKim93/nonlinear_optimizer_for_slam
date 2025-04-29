@@ -13,6 +13,7 @@ add_executable(
   ${PROJECT_NAME}_tests_simple_optimization_test
   tests/simple_optimization_test.cc mahalanobis_distance_minimizer_ceres.cc mahalanobis_distance_minimizer_analytic.cc
   mahalanobis_distance_minimizer_analytic_simd.cc
+  mahalanobis_distance_minimizer_analytic_simd_various.cc
   ${UTILITY_SRC})
 target_include_directories(
   ${PROJECT_NAME}_tests_simple_optimization_test
@@ -21,10 +22,12 @@ target_include_directories(
 target_link_libraries(${PROJECT_NAME}_tests_simple_optimization_test
                       PRIVATE ${CERES_LIBRARIES} ${FLANN_LIBRARIES})
 
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64")
 add_executable(
   ${PROJECT_NAME}_tests_simd_comparison_test
   tests/simd_comparison_test.cc mahalanobis_distance_minimizer_ceres.cc mahalanobis_distance_minimizer_analytic.cc
   mahalanobis_distance_minimizer_analytic_simd.cc
+  mahalanobis_distance_minimizer_analytic_simd_various.cc
   ${UTILITY_SRC})
 target_include_directories(
   ${PROJECT_NAME}_tests_simd_comparison_test
@@ -32,3 +35,4 @@ target_include_directories(
          ${EIGEN3_INCLUDE_DIRS} ${CERES_INCLUDE_DIRS} ${PC_FLANN_INCLUDE_DIRS})
 target_link_libraries(${PROJECT_NAME}_tests_simd_comparison_test
                       PRIVATE ${CERES_LIBRARIES} ${FLANN_LIBRARIES})
+endif()

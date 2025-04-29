@@ -1,5 +1,5 @@
-#ifndef NONLINEAR_OPTIMIZER_MAHALANOBIS_DISTANCE_MINIMIZER_MAHALANOBIS_DISTANCE_MINIMIZER_ANALYTIC_SIMD_H_
-#define NONLINEAR_OPTIMIZER_MAHALANOBIS_DISTANCE_MINIMIZER_MAHALANOBIS_DISTANCE_MINIMIZER_ANALYTIC_SIMD_H_
+#ifndef NONLINEAR_OPTIMIZER_MAHALANOBIS_DISTANCE_MINIMIZER_MAHALANOBIS_DISTANCE_MINIMIZER_ANALYTIC_SIMD_VARIOUS_H_
+#define NONLINEAR_OPTIMIZER_MAHALANOBIS_DISTANCE_MINIMIZER_MAHALANOBIS_DISTANCE_MINIMIZER_ANALYTIC_SIMD_VARIOUS_H_
 
 #include <vector>
 
@@ -11,7 +11,7 @@
 namespace nonlinear_optimizer {
 namespace mahalanobis_distance_minimizer {
 
-struct AlignedBuffer {
+struct AlignedBufferVarious {
   float* sqrt_info[3][3] = {nullptr};
   float* x = {nullptr};
   float* y = {nullptr};
@@ -19,7 +19,7 @@ struct AlignedBuffer {
   float* mx = {nullptr};
   float* my = {nullptr};
   float* mz = {nullptr};
-  AlignedBuffer(const size_t num_data) {
+  AlignedBufferVarious(const size_t num_data) {
     for (int row = 0; row < 3; ++row)
       for (int col = 0; col < 3; ++col)
         sqrt_info[row][col] = simd::GetAlignedMemory<float>(num_data);
@@ -30,7 +30,7 @@ struct AlignedBuffer {
     my = simd::GetAlignedMemory<float>(num_data);
     mz = simd::GetAlignedMemory<float>(num_data);
   }
-  ~AlignedBuffer() {
+  ~AlignedBufferVarious() {
     for (int row = 0; row < 3; ++row)
       for (int col = 0; col < 3; ++col)
         simd::FreeAlignedMemory<float>(sqrt_info[row][col]);
@@ -43,16 +43,34 @@ struct AlignedBuffer {
   }
 };
 
-class MahalanobisDistanceMinimizerAnalyticSIMD
+class MahalanobisDistanceMinimizerAnalyticSIMDVarious
     : public MahalanobisDistanceMinimizer {
  public:
-  MahalanobisDistanceMinimizerAnalyticSIMD();
+  MahalanobisDistanceMinimizerAnalyticSIMDVarious();
 
-  ~MahalanobisDistanceMinimizerAnalyticSIMD();
+  ~MahalanobisDistanceMinimizerAnalyticSIMDVarious();
 
   bool Solve(const Options& options,
              const std::vector<Correspondence>& correspondences,
-             Pose* pose) final;
+             Pose* pose) final;  // solve Float
+  bool SolveFloatAligned(const Options& options,
+                         const std::vector<Correspondence>& correspondences,
+                         Pose* pose);
+  bool SolveFloatIntrinsicAligned(
+      const Options& options,
+      const std::vector<Correspondence>& correspondences, Pose* pose);
+  bool SolveDouble(const Options& options,
+                   const std::vector<Correspondence>& correspondences,
+                   Pose* pose);
+  bool SolveDoubleMatrix(const Options& options,
+                         const std::vector<Correspondence>& correspondences,
+                         Pose* pose);
+  bool SolveFloatMatrix(const Options& options,
+                        const std::vector<Correspondence>& correspondences,
+                        Pose* pose);
+  bool SolveFloatMatrixAligned(
+      const Options& options,
+      const std::vector<Correspondence>& correspondences, Pose* pose);
 
  private:
   void ReflectHessian(Mat6x6* hessian);
@@ -61,4 +79,4 @@ class MahalanobisDistanceMinimizerAnalyticSIMD
 }  // namespace mahalanobis_distance_minimizer
 }  // namespace nonlinear_optimizer
 
-#endif  // NONLINEAR_OPTIMIZER_MAHALANOBIS_DISTANCE_MINIMIZER_MAHALANOBIS_DISTANCE_MINIMIZER_ANALYTIC_SIMD_H_
+#endif  // NONLINEAR_OPTIMIZER_MAHALANOBIS_DISTANCE_MINIMIZER_MAHALANOBIS_DISTANCE_MINIMIZER_ANALYTIC_SIMD_VARIOUS_H_
