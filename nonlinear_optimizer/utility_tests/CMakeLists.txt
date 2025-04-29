@@ -9,6 +9,7 @@ find_package(GTest REQUIRED)
 set(UTILITY_SRC ${CMAKE_SOURCE_DIR}/nonlinear_optimizer/time_checker.cc)
 
 # tests
+#if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64")
 #add_executable(
 #  ${PROJECT_NAME}_simd_helper_performance_test
 #  simd_helper_performance_test.cc ${UTILITY_SRC})
@@ -16,6 +17,7 @@ set(UTILITY_SRC ${CMAKE_SOURCE_DIR}/nonlinear_optimizer/time_checker.cc)
 #  ${PROJECT_NAME}_simd_helper_performance_test
 #  PUBLIC ${CMAKE_SOURCE_DIR} # Include the parent CMake file's directory
 #         ${EIGEN3_INCLUDE_DIRS})
+#endif()
 
 add_executable(
   ${PROJECT_NAME}_simd_helper_test
