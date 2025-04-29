@@ -166,39 +166,28 @@ void ReprojectionErrorMinimizerAnalytic::ComputeHessianOnlyUpperTriangle(
   auto& H = *local_hessian;
   auto& J = jacobian;
   H.setZero();
-  for (int row = 0; row < 6; ++row) {
-    for (int col = row; col < 6; ++col) {
+  for (int row = 0; row < 6; ++row)
+    for (int col = row; col < 6; ++col)
       H(row, col) += J(0, row) * J(0, col) + J(1, row) * J(1, col);
-    }
-  }
 }
 
 void ReprojectionErrorMinimizerAnalytic::MultiplyWeightOnlyUpperTriangle(
     const double weight, Mat6x6* local_hessian) {
-  for (int row = 0; row < 6; ++row) {
-    for (int col = row; col < 6; ++col) {
-      (*local_hessian)(row, col) *= weight;
-    }
-  }
+  for (int row = 0; row < 6; ++row)
+    for (int col = row; col < 6; ++col) (*local_hessian)(row, col) *= weight;
 }
 
 void ReprojectionErrorMinimizerAnalytic::AddHessianOnlyUpperTriangle(
     const Mat6x6& local_hessian, Mat6x6* global_hessian) {
   auto& H = *global_hessian;
-  for (int row = 0; row < 6; ++row) {
-    for (int col = row; col < 6; ++col) {
-      H(row, col) += local_hessian(row, col);
-    }
-  }
+  for (int row = 0; row < 6; ++row)
+    for (int col = row; col < 6; ++col) H(row, col) += local_hessian(row, col);
 }
 
 void ReprojectionErrorMinimizerAnalytic::ReflectHessian(Mat6x6* hessian) {
   auto& H = *hessian;
-  for (int row = 0; row < 6; ++row) {
-    for (int col = row + 1; col < 6; ++col) {
-      H(col, row) = H(row, col);
-    }
-  }
+  for (int row = 0; row < 6; ++row)
+    for (int col = row + 1; col < 6; ++col) H(col, row) = H(row, col);
 }
 
 }  // namespace reprojection_error_minimizer

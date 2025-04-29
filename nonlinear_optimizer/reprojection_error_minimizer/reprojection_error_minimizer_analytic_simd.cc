@@ -199,11 +199,8 @@ bool ReprojectionErrorMinimizerAnalyticSIMD::Solve(
 
 void ReprojectionErrorMinimizerAnalyticSIMD::ReflectHessian(Mat6x6* hessian) {
   auto& H = *hessian;
-  for (int row = 0; row < 6; ++row) {
-    for (int col = row + 1; col < 6; ++col) {
-      H(col, row) = H(row, col);
-    }
-  }
+  for (int row = 0; row < 6; ++row)
+    for (int col = row + 1; col < 6; ++col) H(col, row) = H(row, col);
 }
 
 }  // namespace reprojection_error_minimizer
