@@ -30,8 +30,8 @@ class VectorF {
   explicit VectorF(const std::vector<EigenVec>& multi_vectors) {
     if (multi_vectors.size() != kDataStep)
       throw std::runtime_error("Wrong number of data");
+    float buf[8];
     for (int row = 0; row < kRow; ++row) {
-      float buf[kDataStep];
       for (size_t k = 0; k < kDataStep; ++k) buf[k] = multi_vectors[k](row);
       data_[row] = ScalarF(buf);
     }
@@ -108,8 +108,8 @@ class VectorF {
 
   void StoreData(std::vector<EigenVec>* multi_vectors) const {
     if (multi_vectors->size() != kDataStep) multi_vectors->resize(kDataStep);
+    float buf[8];
     for (int row = 0; row < kRow; ++row) {
-      float buf[kDataStep];
       data_[row].StoreData(buf);
       for (size_t k = 0; k < kDataStep; ++k) multi_vectors->at(k)(row) = buf[k];
     }
@@ -165,8 +165,8 @@ class VectorD {
   explicit VectorD(const std::vector<EigenVec>& multi_vectors) {
     if (multi_vectors.size() != kDataStep)
       throw std::runtime_error("Wrong number of data");
+    double buf[8];
     for (int row = 0; row < kRow; ++row) {
-      double buf[kDataStep];
       for (size_t k = 0; k < kDataStep; ++k) buf[k] = multi_vectors[k](row);
       data_[row] = ScalarD(buf);
     }
@@ -237,8 +237,8 @@ class VectorD {
 
   void StoreData(std::vector<EigenVec>* multi_vectors) const {
     if (multi_vectors->size() != kDataStep) multi_vectors->resize(kDataStep);
+    double buf[8];
     for (int row = 0; row < kRow; ++row) {
-      double buf[kDataStep];
       data_[row].StoreData(buf);
       for (size_t k = 0; k < kDataStep; ++k) multi_vectors->at(k)(row) = buf[k];
     }

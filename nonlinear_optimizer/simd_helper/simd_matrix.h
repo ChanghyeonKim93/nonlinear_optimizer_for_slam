@@ -30,9 +30,9 @@ class MatrixF {
   explicit MatrixF(const std::vector<EigenMat>& multi_matrices) {
     if (multi_matrices.size() != kDataStep)
       throw std::runtime_error("Wrong number of data");
+    float buf[8];
     for (int row = 0; row < kRow; ++row) {
       for (int col = 0; col < kCol; ++col) {
-        float buf[kDataStep];
         for (size_t k = 0; k < kDataStep; ++k)
           buf[k] = multi_matrices[k](row, col);
         data_[row][col] = ScalarF(buf);
@@ -132,9 +132,9 @@ class MatrixF {
 
   void StoreData(std::vector<EigenMat>* multi_matrices) const {
     if (multi_matrices->size() != kDataStep) multi_matrices->resize(kDataStep);
+    float buf[8];
     for (int row = 0; row < kRow; ++row) {
       for (int col = 0; col < kCol; ++col) {
-        float buf[kDataStep];
         data_[row][col].StoreData(buf);
         for (size_t k = 0; k < kDataStep; ++k)
           multi_matrices->at(k)(row, col) = buf[k];
@@ -190,9 +190,9 @@ class MatrixD {
   explicit MatrixD(const std::vector<EigenMat>& multi_matrices) {
     if (multi_matrices.size() != kDataStep)
       throw std::runtime_error("Wrong number of data");
+    double buf[8];
     for (int row = 0; row < kRow; ++row) {
       for (int col = 0; col < kCol; ++col) {
-        double buf[kDataStep];
         for (size_t k = 0; k < kDataStep; ++k)
           buf[k] = multi_matrices[k](row, col);
         data_[row][col] = ScalarD(buf);
@@ -313,9 +313,9 @@ class MatrixD {
 
   void StoreData(std::vector<EigenMat>* multi_matrices) const {
     if (multi_matrices->size() != kDataStep) multi_matrices->resize(kDataStep);
+    double buf[8];
     for (int row = 0; row < kRow; ++row) {
       for (int col = 0; col < kCol; ++col) {
-        double buf[kDataStep];
         data_[row][col].StoreData(buf);
         for (size_t k = 0; k < kDataStep; ++k)
           multi_matrices->at(k)(row, col) = buf[k];
