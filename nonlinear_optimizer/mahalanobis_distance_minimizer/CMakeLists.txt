@@ -13,7 +13,6 @@ add_executable(
   ${PROJECT_NAME}_tests_simple_optimization_test
   tests/simple_optimization_test.cc mahalanobis_distance_minimizer_ceres.cc mahalanobis_distance_minimizer_analytic.cc
   mahalanobis_distance_minimizer_analytic_simd.cc
-  mahalanobis_distance_minimizer_analytic_simd_various.cc
   ${UTILITY_SRC})
 target_include_directories(
   ${PROJECT_NAME}_tests_simple_optimization_test

@@ -76,10 +76,10 @@ bool ReprojectionErrorMinimizerAnalyticSIMD::Solve(
       simd::ScalarF loss__(sq_r__);
       simd::ScalarF weight__(1.0);
       if (loss_function_ != nullptr) {
-        float sq_r_buf[_SIMD_DATA_STEP_FLOAT];
+        float sq_r_buf[8];
         sq_r__.StoreData(sq_r_buf);
-        float loss_buf[_SIMD_DATA_STEP_FLOAT];
-        float weight_buf[_SIMD_DATA_STEP_FLOAT];
+        float loss_buf[8];
+        float weight_buf[8];
         for (int k = 0; k < _SIMD_DATA_STEP_FLOAT; ++k) {
           double loss_output[3] = {0.0, 0.0, 0.0};
           loss_function_->Evaluate(sq_r_buf[k], loss_output);

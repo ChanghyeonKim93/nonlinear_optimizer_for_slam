@@ -17,8 +17,7 @@ class MatrixF {
  public:
   MatrixF() {
     for (int row = 0; row < kRow; ++row)
-      for (int col = 0; col < kCol; ++col)
-        data_[row][col] = _mm256_setzero_ps();
+      for (int col = 0; col < kCol; ++col) data_[row][col] = ScalarF(0.0f);
   }
   ~MatrixF() {}
 

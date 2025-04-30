@@ -19,7 +19,7 @@ class VectorF {
 
  public:
   VectorF() {
-    for (int row = 0; row < kRow; ++row) data_[row] = _mm256_set1_ps(0.0f);
+    for (int row = 0; row < kRow; ++row) data_[row] = ScalarF(0.0f);
   }
   ~VectorF() {}
 
