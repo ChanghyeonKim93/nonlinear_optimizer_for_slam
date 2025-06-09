@@ -1,0 +1,36 @@
+# points: 630
+Start OptimizedPoseOriginal
+Summary: Ceres Solver Report: Iterations: 13, Initial cost: 1.489874e-02, Final cost: 1.865075e-16, Termination: CONVERGENCE
+Start OptimizedPoseAnalytic
+COST: 2.33228e-11, iter: 6
+Start OptimizedPoseAnalyticSIMD
+COST: 2.71537e-11, iter: 6
+True pose:  -0.1 0.123  -0.5         0         0 0.0499792   0.99875
+Pose (ceres ): -0.10019 0.123196 -0.50348 -7.76577e-07 -1.82009e-07    0.0500162     0.999014
+Pose (analytic ):  -0.1 0.123  -0.5 -2.38636e-09  5.42421e-11    0.0499792      0.99875
+Pose (analytic simd):  -0.1 0.123  -0.5  4.51411e-08 -8.21064e-09    0.0499792      0.99875
+------------ Time Analysis ------------
+/home/kch/github_repositories/nonlinear_optimizer_for_slam/nonlinear_optimizer/reprojection_error_minimizer/tests/simple_optimization_test.cc/OptimizePoseAnalytic
+           calls: 1
+             min:        1.326866 [ms]
+             max:        1.326866 [ms]
+             avg:        1.326866 [ms]
+             std:        0.000000 [ms]
+ total occupancy:        1.326866 [ms]
+ -----------------------------------------------
+/home/kch/github_repositories/nonlinear_optimizer_for_slam/nonlinear_optimizer/reprojection_error_minimizer/tests/simple_optimization_test.cc/OptimizePoseAnalyticSIMD
+           calls: 1
+             min:        0.399503 [ms]
+             max:        0.399503 [ms]
+             avg:        0.399503 [ms]
+             std:        0.000000 [ms]
+ total occupancy:        0.399503 [ms]
+ -----------------------------------------------
+/home/kch/github_repositories/nonlinear_optimizer_for_slam/nonlinear_optimizer/reprojection_error_minimizer/tests/simple_optimization_test.cc/OptimizePoseCeres
+           calls: 1
+             min:       12.494560 [ms]
+             max:       12.494560 [ms]
+             avg:       12.494560 [ms]
+             std:        0.000000 [ms]
+ total occupancy:       12.494560 [ms]
+

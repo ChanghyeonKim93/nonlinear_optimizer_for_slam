@@ -1,0 +1,133 @@
+# points: 954605
+Ndt map size: 96
+Start Analytic:
+COST: 70430.4, iter: 40
+COST: 70740.6, iter: 40
+COST: 70707.8, iter: 21
+COST: 1.79769e+308, iter: 0
+outer_iter: 3
+Start SIMD Matrix Double :
+COST: 70430.4, iter: 40
+COST: 70740.6, iter: 40
+COST: 70707.8, iter: 21
+COST: 1.79769e+308, iter: 0
+outer_iter: 3
+Start SIMD Scalar Double :
+COST: 70426.8, iter: 40
+COST: 70740.9, iter: 40
+COST: 70708, iter: 21
+COST: 3.40282e+38, iter: 0
+outer_iter: 3
+Start SIMD Matrix Float :
+COST: 70426.8, iter: 40
+COST: 70740.9, iter: 40
+COST: 70708, iter: 21
+COST: 3.40282e+38, iter: 0
+outer_iter: 3
+Start SIMD Scalar Float :
+COST: 70426.8, iter: 40
+COST: 70740.9, iter: 40
+COST: 70708, iter: 21
+COST: 3.40282e+38, iter: 0
+outer_iter: 3
+Start SIMD Matrix Float Aligned :
+COST: 70426.8, iter: 40
+COST: 70740.9, iter: 40
+COST: 70708, iter: 21
+COST: 3.40282e+38, iter: 0
+outer_iter: 3
+Start SIMD Scalar Float Aligned :
+COST: 70426.8, iter: 40
+COST: 70740.9, iter: 40
+COST: 70708, iter: 21
+COST: 3.40282e+38, iter: 0
+outer_iter: 3
+Start SIMD Intrinsic Float Aligned :
+COST: 70426.8, iter: 40
+COST: 70740.9, iter: 40
+COST: 70708, iter: 21
+COST: 3.40282e+38, iter: 0
+outer_iter: 3
+True pose:
+-0.321  0.123  0.013         0         0 0.0614612  0.998109
+Estimated pose (analytic):
+-0.319072   0.12251 0.0148608  0.000187823 -0.000584677    0.0614867     0.998108
+Estimated pose (SIMD / Helper (matrix) / Double):
+-0.319072   0.12251 0.0148608  0.000187823 -0.000584677    0.0614867     0.998108
+Estimated pose (SIMD / Helper (scalar) / Double):
+-0.319072   0.12251 0.0148608  0.000187818 -0.000584681    0.0614867     0.998108
+Estimated pose (SIMD / Helper (matrix) / Float ):
+-0.319072   0.12251 0.0148608  0.000187818 -0.000584679    0.0614867     0.998108
+Estimated pose (SIMD / Helper (scalar) / Float ):
+-0.319072   0.12251 0.0148608  0.000187818 -0.000584679    0.0614867     0.998108
+Estimated pose (SIMD / Helper (scalar) / Float / Aligned mem.):
+-0.319072   0.12251 0.0148608  0.000187818 -0.000584679    0.0614867     0.998108
+Estimated pose (SIMD / Helper (matrix) / Float / Aligned mem.):
+-0.319072   0.12251 0.0148608  0.000187818 -0.000584679    0.0614867     0.998108
+Estimated pose (SIMD / Intrinsic / Float / Aligned mem.):
+-0.319072   0.12251 0.0148608  0.000187824 -0.000584686    0.0614867     0.998108
+------------ Time Analysis ------------
+/home/kch/github_repositories/nonlinear_optimizer_for_slam/nonlinear_optimizer/mahalanobis_distance_minimizer/tests/simd_comparison_test.cc/OptimizePoseAnalytic
+           calls: 1
+             min:      543.084734 [ms]
+             max:      543.084734 [ms]
+             avg:      543.084734 [ms]
+             std:        0.000000 [ms]
+ total occupancy:      543.084734 [ms]
+ -----------------------------------------------
+/home/kch/github_repositories/nonlinear_optimizer_for_slam/nonlinear_optimizer/mahalanobis_distance_minimizer/tests/simd_comparison_test.cc/OptimizePoseAnalyticSimdHelperDoubleMatrix
+           calls: 1
+             min:      255.363993 [ms]
+             max:      255.363993 [ms]
+             avg:      255.363993 [ms]
+             std:        0.000000 [ms]
+ total occupancy:      255.363993 [ms]
+ -----------------------------------------------
+/home/kch/github_repositories/nonlinear_optimizer_for_slam/nonlinear_optimizer/mahalanobis_distance_minimizer/tests/simd_comparison_test.cc/OptimizePoseAnalyticSimdHelperDoubleScalar
+           calls: 1
+             min:      229.101940 [ms]
+             max:      229.101940 [ms]
+             avg:      229.101940 [ms]
+             std:        0.000000 [ms]
+ total occupancy:      229.101940 [ms]
+ -----------------------------------------------
+/home/kch/github_repositories/nonlinear_optimizer_for_slam/nonlinear_optimizer/mahalanobis_distance_minimizer/tests/simd_comparison_test.cc/OptimizePoseAnalyticSimdHelperFloatMatrix
+           calls: 1
+             min:      383.753678 [ms]
+             max:      383.753678 [ms]
+             avg:      383.753678 [ms]
+             std:        0.000000 [ms]
+ total occupancy:      383.753678 [ms]
+ -----------------------------------------------
+/home/kch/github_repositories/nonlinear_optimizer_for_slam/nonlinear_optimizer/mahalanobis_distance_minimizer/tests/simd_comparison_test.cc/OptimizePoseAnalyticSimdHelperFloatMatrixAligned
+           calls: 1
+             min:      228.076855 [ms]
+             max:      228.076855 [ms]
+             avg:      228.076855 [ms]
+             std:        0.000000 [ms]
+ total occupancy:      228.076855 [ms]
+ -----------------------------------------------
+/home/kch/github_repositories/nonlinear_optimizer_for_slam/nonlinear_optimizer/mahalanobis_distance_minimizer/tests/simd_comparison_test.cc/OptimizePoseAnalyticSimdHelperFloatScalar
+           calls: 1
+             min:      303.131970 [ms]
+             max:      303.131970 [ms]
+             avg:      303.131970 [ms]
+             std:        0.000000 [ms]
+ total occupancy:      303.131970 [ms]
+ -----------------------------------------------
+/home/kch/github_repositories/nonlinear_optimizer_for_slam/nonlinear_optimizer/mahalanobis_distance_minimizer/tests/simd_comparison_test.cc/OptimizePoseAnalyticSimdHelperFloatScalarAligned
+           calls: 1
+             min:      195.389339 [ms]
+             max:      195.389339 [ms]
+             avg:      195.389339 [ms]
+             std:        0.000000 [ms]
+ total occupancy:      195.389339 [ms]
+ -----------------------------------------------
+/home/kch/github_repositories/nonlinear_optimizer_for_slam/nonlinear_optimizer/mahalanobis_distance_minimizer/tests/simd_comparison_test.cc/OptimizePoseAnalyticSimdIntrinsicFloatAligned
+           calls: 1
+             min:      194.534908 [ms]
+             max:      194.534908 [ms]
+             avg:      194.534908 [ms]
+             std:        0.000000 [ms]
+ total occupancy:      194.534908 [ms]
+ -----------------------------------------------
