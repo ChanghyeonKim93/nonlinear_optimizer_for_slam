@@ -2,8 +2,7 @@
 #define SIMD_HELPER_V2_SIMD_HELPER_H_
 
 #include "simd_helper_v2/simd_matrix.h"
-#include "simd_helper_v2/simd_scalar_amd.h"
-#include "simd_helper_v2/simd_scalar_arm.h"
+#include "simd_helper_v2/simd_scalar.h"
 
 #define ALIGN_BYTES 32
 // AVX2 (512 bits = 64 Bytes), AVX (256 bits ), SSE4.2 (128 bits )

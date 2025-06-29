@@ -1,14 +1,7 @@
 #ifndef SIMD_HELPER_V2_SIMD_MATRIX_H_
 #define SIMD_HELPER_V2_SIMD_MATRIX_H_
 
-#if defined(__amd64__) || defined(__x86_64__)
-#include "simd_helper_v2/simd_scalar_amd.h"
-#elif defined(__arm64__) || defined(__aarch64__)
-#include "simd_helper_v2/simd_scalar_arm.h"
-#else
-#error \
-    "Unsupported architecture. Please define either __amd64__, __x86_64__, __arm64__, or __aarch64__."
-#endif
+#include "simd_helper_v2/simd_scalar.h"
 
 namespace simd {
 
@@ -104,6 +97,10 @@ class MatrixBase {
     for (int r = 0; r < kRow; ++r)
       for (int c = 0; c < kCol; ++c) res.data_[r][c] *= rhs;
     return res;
+  }
+
+  friend MatrixBase operator*(const float lhs, const MatrixBase& rhs) {
+    return MatrixBase(_mm256_mul_ps(rhs.data_, _mm256_set1_ps(lhs)));
   }
 
   MatrixBase operator/(const float rhs) const {
