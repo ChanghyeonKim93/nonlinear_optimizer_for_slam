@@ -75,9 +75,7 @@ class MatrixBase {
   }
 
   // Arithmetic operations
-  MatrixBase operator-() const {
-    return MatrixBase(_mm256_sub_ps(__zero, data_));
-  }
+  MatrixBase operator-() const { return MatrixBase(_s_sub(__zero, data_)); }
 
   // Arithmetic operations: element-wise operations
   MatrixBase operator+(const float rhs) const {
@@ -102,7 +100,7 @@ class MatrixBase {
   }
 
   friend MatrixBase operator*(const float lhs, const MatrixBase& rhs) {
-    return MatrixBase(_mm256_mul_ps(rhs.data_, _mm256_set1_ps(lhs)));
+    return MatrixBase(_s_mul(rhs.data_, _s_set1(lhs)));
   }
 
   MatrixBase operator/(const float rhs) const {

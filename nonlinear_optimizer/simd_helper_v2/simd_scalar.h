@@ -36,7 +36,7 @@ using _s_data = __m256;
 using _s_data = float32x4_t;
 #define _s_set vsetq_f32
 #define _s_set1 vdupq_n_f32
-#define _s_load vldlq_f32
+#define _s_load vld1q_f32
 #define _s_add vaddq_f32
 #define _s_sub vsubq_f32
 #define _s_mul vmulq_f32
@@ -90,7 +90,7 @@ class MatrixBase<1, 1> {
 #elif CPU_ARCH_ARM
   MatrixBase<1, 1>(const float n1, const float n2, const float n3,
                    const float n4) {
-    data_ = _s_set(n4, n3, n2, n1);
+    data_ = (float32x4_t){n1, n2, n3, n4};
   }
 #endif
 
@@ -273,8 +273,10 @@ class MatrixBase<1, 1> {
 #if CPU_ARCH_AMD64
     __m256 result = _mm256_andnot_ps(_s_set1(-0.0f), data_);
 #elif CPU_ARCH_ARM
-    uint32x4_t sign_mask = vmvnq_u32(vdupq_n_u32(0x80000000));  // ~(-0.0f)
-    float32x4_t result = vandq_f32(data_, vreinterpretq_f32_u32(sign_mask));
+    uint32x4_t sign_mask = vdupq_n_u32(0x7FFFFFFF);
+    uint32x4_t data_as_int = vreinterpretq_u32_f32(data_);
+    uint32x4_t abs_as_int = vandq_u32(data_as_int, sign_mask);
+    float32x4_t result = vreinterpretq_f32_u32(abs_as_int);
 #endif
     return MatrixBase<1, 1>(result);
   }
@@ -284,8 +286,8 @@ class MatrixBase<1, 1> {
   //   e^x = 1+x+x^2/2!+x^3/3!+x^4/4!+x^5/5!+x^6/6!+x^7/7!+x^8/8!
   MatrixBase<1, 1> exp() const {
     const auto& x = data_;
-    __m256 term = __one;
-    __m256 res = term;
+    _s_data term = __one;
+    _s_data res = term;
     for (int i = 1; i < 9; ++i) {
       term = _s_mul(term, x);
       term = _s_div(term, _s_set1(static_cast<float>(i)));
@@ -312,7 +314,7 @@ class MatrixBase<1, 1> {
   }
 
  private:
-  __m256 data_;
+  _s_data data_;
 };
 
 }  // namespace simd
