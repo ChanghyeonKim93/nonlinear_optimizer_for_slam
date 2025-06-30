@@ -3,6 +3,8 @@
 
 #include "simd_helper_v2/simd_scalar.h"
 
+#include "Eigen/Dense"
+
 namespace simd {
 
 template <int kRow, int kCol>
@@ -261,6 +263,12 @@ class Vector : public Matrix<kDim, 1> {
 
   Scalar& operator()(const int i) const { return (*this)(i, 0); }
 };
+
+Scalar abs(const Scalar& input) { return input.abs(); }
+
+Scalar sqrt(const Scalar& input) { return input.sqrt(); }
+
+Scalar exp(const Scalar& input) { return input.exp(); }
 
 }  // namespace simd
 
