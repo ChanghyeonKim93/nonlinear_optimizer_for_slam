@@ -75,9 +75,9 @@ class PoseOptimizer {
              const Options& options, Pose* pose, Summary* summary = nullptr) {
     bool success = true;
 
-    double lambda = options.damping_handle.initial_lambda;
-
     Pose optimized_pose = *pose;
+
+    double lambda = options.damping_handle.initial_lambda;
     double previous_cost = std::numeric_limits<double>::max();
     int iteration = 0;
     for (; iteration < options.max_iterations; ++iteration) {
@@ -101,12 +101,6 @@ class PoseOptimizer {
       // Damping hessian
       for (int k = 0; k < kDimPose; k++) hessian(k, k) *= 1.0 + lambda;
 
-      // Solve the linear system hessian * delta = -gradient
-      Eigen::LLT<HessianMatrix> llt(hessian);
-      if (llt.info() != Eigen::Success) {
-        success = false;
-        break;
-      }
       // Compute the step
       const Eigen::Matrix<double, kDimPose, 1> update_step =
           hessian.ldlt().solve(-gradient);
@@ -129,12 +123,11 @@ class PoseOptimizer {
         break;
       }
 
-      const auto& damping_handle = options.damping_handle;
-      lambda *= (cost > previous_cost)
-                    ? damping_handle.lambda_increasing_factor
-                    : damping_handle.lambda_decreasing_factor;
-      lambda = std::clamp(lambda, damping_handle.min_lambda,
-                          damping_handle.max_lambda);
+      const auto& damping_param = options.damping_handle;
+      lambda *= (cost > previous_cost) ? damping_param.lambda_increasing_factor
+                                       : damping_param.lambda_decreasing_factor;
+      lambda = std::clamp(lambda, damping_param.min_lambda,
+                          damping_param.max_lambda);
 
       if (kDimRotation == 1)
         optimized_pose.rotate(delta_R);
@@ -153,16 +146,16 @@ class PoseOptimizer {
 
  private:
   void AddLocalHessianOnlyUpperTriangle(const HessianMatrix& local_hessian,
-                                        HessianMatrix* hessian_matrix) {
+                                        HessianMatrix* hessian) {
     for (int i = 0; i < kDimPose; ++i)
       for (int j = i; j < kDimPose; ++j)
-        (*hessian_matrix)(i, j) += local_hessian(i, j);
+        (*hessian)(i, j) += local_hessian(i, j);
   }
 
-  void ReflectHessian(HessianMatrix* hessian_matrix) {
+  void ReflectHessian(HessianMatrix* hessian) {
     for (int i = 0; i < kDimPose; ++i)
       for (int j = i + 1; j < kDimPose; ++j)
-        (*hessian_matrix)(j, i) = (*hessian_matrix)(i, j);
+        (*hessian)(j, i) = (*hessian)(i, j);
   }
 
   Eigen::Quaterniond ComputeQuaternion(const Eigen::Vector3d& w) {
@@ -170,16 +163,12 @@ class PoseOptimizer {
     const double theta = w.norm();
     if (theta < 1e-6) {
       orientation.w() = 1.0;
-      orientation.x() = 0.5 * w.x();
-      orientation.y() = 0.5 * w.y();
-      orientation.z() = 0.5 * w.z();
+      orientation.vec() = 0.5 * w;
     } else {
       const double half_theta = theta * 0.5;
       const double sin_half_theta_divided_theta = std::sin(half_theta) / theta;
       orientation.w() = std::cos(half_theta);
-      orientation.x() = sin_half_theta_divided_theta * w.x();
-      orientation.y() = sin_half_theta_divided_theta * w.y();
-      orientation.z() = sin_half_theta_divided_theta * w.z();
+      orientation.vec() = sin_half_theta_divided_theta * w;
     }
     return orientation;
   }
