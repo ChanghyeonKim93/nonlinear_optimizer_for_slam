@@ -11,6 +11,9 @@ using Vec4 = Eigen::Matrix<double, 4, 1>;
 using Vec5 = Eigen::Matrix<double, 5, 1>;
 using Vec6 = Eigen::Matrix<double, 6, 1>;
 
+using Mat1x2 = Eigen::Matrix<double, 1, 2>;
+using Mat2x1 = Eigen::Matrix<double, 2, 1>;
+
 using Mat2x2 = Eigen::Matrix<double, 2, 2>;
 using Mat2x3 = Eigen::Matrix<double, 2, 3>;
 using Mat3x2 = Eigen::Matrix<double, 3, 2>;
@@ -27,6 +30,7 @@ using Mat6x2 = Eigen::Matrix<double, 6, 2>;
 using Mat6x1 = Eigen::Matrix<double, 6, 1>;
 
 using Orientation = Eigen::Quaterniond;
+using Pose2 = Eigen::Isometry2d;
 using Pose = Eigen::Isometry3d;
 
 using Vec2f = Eigen::Matrix<float, 2, 1>;
