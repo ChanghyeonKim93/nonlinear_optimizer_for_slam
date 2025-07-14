@@ -79,7 +79,7 @@ bool MahalanobisDistanceMinimizerAnalytic3DOF::Solve(
     // Update the pose
     const Vec2 delta_t = update_step.block<2, 1>(0, 0);
     const double delta_R = update_step(2);
-    optimized_pose.translation() += delta_t;
+    optimized_pose.translate(delta_t);
     optimized_pose.rotate(delta_R);
 
     // Check convergence
@@ -102,7 +102,7 @@ bool MahalanobisDistanceMinimizerAnalytic3DOF::Solve(
             << std::endl;
 
   pose->translation().block<2, 1>(0, 0) = optimized_pose.translation();
-  pose->linear().block<2, 2>(0, 0) = optimized_pose.rotation();
+  pose->linear().block<2, 2>(0, 0) = optimized_pose.linear();
 
   return true;
 }
