@@ -71,7 +71,7 @@ int main(int, char**) {
 
   // Set true pose
   Pose true_pose{Pose::Identity()};
-  true_pose.translation() = Vec3(-0.2, 0.123, 0.0);
+  true_pose.translation() = Vec3(-0.15, 0.05, 0.0);
   true_pose.linear() =
       Eigen::AngleAxisd(0.2, Vec3(0.0, 0.0, 1.0)).toRotationMatrix();
 
