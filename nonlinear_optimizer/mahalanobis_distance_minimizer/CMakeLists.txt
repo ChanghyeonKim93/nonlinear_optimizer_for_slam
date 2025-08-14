@@ -3,6 +3,7 @@ message("  -- [SUBPROJECT]: " ${PROJECT_NAME})
 
 find_package(Eigen3 REQUIRED)
 find_package(Ceres REQUIRED)
+find_package(simd_helper REQUIRED)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(FLANN REQUIRED flann)
 
@@ -23,17 +24,19 @@ target_link_libraries(${PROJECT_NAME}_tests_simple_optimization_test
 
 add_executable(
   ${PROJECT_NAME}_3dof_6dof_comparison_test
-  tests/3dof_6dof_comparison_test.cc mahalanobis_distance_minimizer_ceres.cc
+  tests/3dof_6dof_comparison_test.cc
+  mahalanobis_distance_minimizer_ceres.cc
   mahalanobis_distance_minimizer_analytic.cc
   mahalanobis_distance_minimizer_analytic_3dof.cc
-  mahalanobis_distance_minimizer_analytic_simd.cc ${UTILITY_SRC})
+  mahalanobis_distance_minimizer_analytic_simd.cc
+  ${UTILITY_SRC})
 target_include_directories(
   ${PROJECT_NAME}_3dof_6dof_comparison_test
   PUBLIC ${CMAKE_SOURCE_DIR} # Include the parent CMake file's directory
          ${EIGEN3_INCLUDE_DIRS} ${CERES_INCLUDE_DIRS} ${PC_FLANN_INCLUDE_DIRS})
-target_link_libraries(${PROJECT_NAME}_3dof_6dof_comparison_test
-                      PRIVATE ${CERES_LIBRARIES} ${FLANN_LIBRARIES})
-
+target_link_libraries(
+  ${PROJECT_NAME}_3dof_6dof_comparison_test
+  PRIVATE ${CERES_LIBRARIES} ${FLANN_LIBRARIES} simd_helper::simd_helper)
 
 if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64")
   add_executable(
@@ -50,6 +53,7 @@ if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64")
     PUBLIC ${CMAKE_SOURCE_DIR} # Include the parent CMake file's directory
            ${EIGEN3_INCLUDE_DIRS} ${CERES_INCLUDE_DIRS}
            ${PC_FLANN_INCLUDE_DIRS})
-  target_link_libraries(${PROJECT_NAME}_tests_simd_comparison_test
-                        PRIVATE ${CERES_LIBRARIES} ${FLANN_LIBRARIES})
+  target_link_libraries(
+    ${PROJECT_NAME}_tests_simd_comparison_test
+    PRIVATE ${CERES_LIBRARIES} ${FLANN_LIBRARIES} simd_helper::simd_helper)
 endif()

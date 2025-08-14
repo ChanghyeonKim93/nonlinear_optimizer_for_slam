@@ -2,7 +2,7 @@
 
 #include <iostream>
 
-#include "nonlinear_optimizer/simd_helper/simd_helper.h"
+#include "simd_helper/simd_helper.h"
 
 namespace nonlinear_optimizer {
 namespace mahalanobis_distance_minimizer {
@@ -50,27 +50,27 @@ bool MahalanobisDistanceMinimizerAnalyticSIMD::Solve(
   for (; iteration < options.max_iterations; ++iteration) {
     const Mat3x3f opt_R = optimized_orientation.toRotationMatrix();
     const Vec3f opt_t = optimized_translation;
-    simd::MatrixF<3, 3> R__(opt_R);
-    simd::VectorF<3> t__(opt_t);
+    simd::Matrix<3, 3> R__(opt_R);
+    simd::Vector<3> t__(opt_t);
 
-    simd::VectorF<6> gradient__(Eigen::Matrix<float, 6, 1>::Zero());
-    simd::MatrixF<6, 6> hessian__(Eigen::Matrix<float, 6, 6>::Zero());
-    simd::ScalarF cost__(0.0);
-    const size_t stride = simd::ScalarF::GetDataStep();
+    simd::Vector<6> gradient__(Eigen::Matrix<float, 6, 1>::Zero());
+    simd::Matrix<6, 6> hessian__(Eigen::Matrix<float, 6, 6>::Zero());
+    simd::Scalar cost__(0.0);
+    const size_t stride = simd::Scalar::data_stride;
     const int num_stride = correspondences.size() / stride;
     for (size_t point_idx = 0; point_idx < num_stride * stride;
          point_idx += stride) {
-      simd::VectorF<3> p__(
+      simd::Vector<3> p__(
           {abuf.x + point_idx, abuf.y + point_idx, abuf.z + point_idx});
-      simd::VectorF<3> mu__(
+      simd::Vector<3> mu__(
           {abuf.mx + point_idx, abuf.my + point_idx, abuf.mz + point_idx});
-      simd::MatrixF<3, 3> sqrt_info__(
+      simd::Matrix<3, 3> sqrt_info__(
           {abuf.sqrt_info[0][0] + point_idx, abuf.sqrt_info[0][1] + point_idx,
            abuf.sqrt_info[0][2] + point_idx, abuf.sqrt_info[1][0] + point_idx,
            abuf.sqrt_info[1][1] + point_idx, abuf.sqrt_info[1][2] + point_idx,
            abuf.sqrt_info[2][0] + point_idx, abuf.sqrt_info[2][1] + point_idx,
            abuf.sqrt_info[2][2] + point_idx});
-      // simd::VectorF<3> p__(
+      // simd::Vector<3> p__(
       //     {correspondences.at(point_idx).point.cast<float>(),
       //      correspondences.at(point_idx + 1).point.cast<float>(),
       //      correspondences.at(point_idx + 2).point.cast<float>(),
@@ -79,7 +79,7 @@ bool MahalanobisDistanceMinimizerAnalyticSIMD::Solve(
       //      correspondences.at(point_idx + 5).point.cast<float>(),
       //      correspondences.at(point_idx + 6).point.cast<float>(),
       //      correspondences.at(point_idx + 7).point.cast<float>()});
-      // simd::VectorF<3> mu__(
+      // simd::Vector<3> mu__(
       //     {correspondences.at(point_idx).ndt.mean.cast<float>(),
       //      correspondences.at(point_idx + 1).ndt.mean.cast<float>(),
       //      correspondences.at(point_idx + 2).ndt.mean.cast<float>(),
@@ -88,7 +88,7 @@ bool MahalanobisDistanceMinimizerAnalyticSIMD::Solve(
       //      correspondences.at(point_idx + 5).ndt.mean.cast<float>(),
       //      correspondences.at(point_idx + 6).ndt.mean.cast<float>(),
       //      correspondences.at(point_idx + 7).ndt.mean.cast<float>()});
-      // simd::MatrixF<3, 3> sqrt_info__(
+      // simd::Matrix<3, 3> sqrt_info__(
       //     {correspondences.at(point_idx).ndt.sqrt_information.cast<float>(),
       //      correspondences.at(point_idx +
       //      1).ndt.sqrt_information.cast<float>(),
@@ -107,15 +107,15 @@ bool MahalanobisDistanceMinimizerAnalyticSIMD::Solve(
 
       // clang-format off
       // pw = R*p + t
-      const simd::VectorF<3> pw__ = R__ * p__ + t__;
+      const simd::Vector<3> pw__ = R__ * p__ + t__;
 
       // e_i = pw - mean
-      const simd::VectorF<3> e__ = pw__ - mu__;
+      const simd::Vector<3> e__ = pw__ - mu__;
 
       // r = sqrt_info * e
-      const simd::VectorF<3> r__ = sqrt_info__ * e__;
+      const simd::Vector<3> r__ = sqrt_info__ * e__;
 
-      simd::MatrixF<3,3> minus_R_skewp__;
+      simd::Matrix<3,3> minus_R_skewp__;
       minus_R_skewp__(0, 0) =  R__(0, 2) * p__(1) - R__(0, 1) * p__(2);
       minus_R_skewp__(1, 0) =  R__(1, 2) * p__(1) - R__(1, 1) * p__(2);
       minus_R_skewp__(2, 0) =  R__(2, 2) * p__(1) - R__(2, 1) * p__(2);
@@ -125,10 +125,10 @@ bool MahalanobisDistanceMinimizerAnalyticSIMD::Solve(
       minus_R_skewp__(0, 2) =  R__(0, 1) * p__(0) - R__(0, 0) * p__(1);
       minus_R_skewp__(1, 2) =  R__(1, 1) * p__(0) - R__(1, 0) * p__(1);
       minus_R_skewp__(2, 2) =  R__(2, 1) * p__(0) - R__(2, 0) * p__(1);
-      const simd::MatrixF<3,3> sqrt_info_minus_R_skewp_ = sqrt_info__ * minus_R_skewp__;
+      const simd::Matrix<3,3> sqrt_info_minus_R_skewp_ = sqrt_info__ * minus_R_skewp__;
 
       // Direct calculation is far faster than helper operator.
-      simd::MatrixF<3,6> J__;
+      simd::Matrix<3,6> J__;
       J__(0, 0) = sqrt_info__(0, 0); J__(0, 1) = sqrt_info__(0, 1); J__(0, 2) = sqrt_info__(0, 2);
       J__(1, 0) = sqrt_info__(1, 0); J__(1, 1) = sqrt_info__(1, 1); J__(1, 2) = sqrt_info__(1, 2);
       J__(2, 0) = sqrt_info__(2, 0); J__(2, 1) = sqrt_info__(2, 1); J__(2, 2) = sqrt_info__(2, 2);
@@ -139,22 +139,22 @@ bool MahalanobisDistanceMinimizerAnalyticSIMD::Solve(
 
       // Compute loss and weight,
       // and add the local gradient and hessian to the global ones
-      simd::ScalarF sq_r__ = r__.GetNorm();
-      simd::ScalarF loss__(sq_r__);
-      simd::ScalarF weight__(1.0);
+      simd::Scalar sq_r__ = r__.squaredNorm();
+      simd::Scalar loss__(sq_r__);
+      simd::Scalar weight__(1.0);
       if (loss_function_ != nullptr) {
         float sq_r_buf[8];
         sq_r__.StoreData(sq_r_buf);
         float loss_buf[8];
         float weight_buf[8];
-        for (int k = 0; k < _SIMD_DATA_STEP_FLOAT; ++k) {
+        for (size_t k = 0; k < simd::Scalar::data_stride; ++k) {
           double loss_output[3] = {0.0, 0.0, 0.0};
           loss_function_->Evaluate(sq_r_buf[k], loss_output);
           loss_buf[k] = loss_output[0];
           weight_buf[k] = loss_output[1];
         }
-        loss__ = simd::ScalarF(loss_buf);
-        weight__ = simd::ScalarF(weight_buf);
+        loss__ = simd::Scalar(loss_buf);
+        weight__ = simd::Scalar(weight_buf);
       }
 
       // g(i) += (J(0,i)*r(0) + J(1,i)*r(1) + J(2,i)*r(2))
@@ -174,17 +174,17 @@ bool MahalanobisDistanceMinimizerAnalyticSIMD::Solve(
     float buf[8];
     cost__.StoreData(buf);
     float cost = 0.0;
-    for (int kk = 0; kk < _SIMD_DATA_STEP_FLOAT; ++kk) cost += buf[kk];
+    for (size_t kk = 0; kk < simd::Scalar::data_stride; ++kk) cost += buf[kk];
 
     Mat6x6 hessian{Mat6x6::Zero()};
     Vec6 gradient{Vec6::Zero()};
     for (int ii = 0; ii < 6; ++ii) {
       gradient__(ii).StoreData(buf);
-      for (size_t kk = 0; kk < simd::ScalarF::GetDataStep(); ++kk)
+      for (size_t kk = 0; kk < simd::Scalar::data_stride; ++kk)
         gradient(ii) += buf[kk];
       for (int jj = ii; jj < 6; ++jj) {
         hessian__(ii, jj).StoreData(buf);
-        for (size_t kk = 0; kk < simd::ScalarF::GetDataStep(); ++kk)
+        for (size_t kk = 0; kk < simd::Scalar::data_stride; ++kk)
           hessian(ii, jj) += buf[kk];
       }
     }

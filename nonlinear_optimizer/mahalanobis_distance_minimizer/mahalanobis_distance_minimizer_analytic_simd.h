@@ -5,8 +5,9 @@
 
 #include "nonlinear_optimizer/mahalanobis_distance_minimizer/mahalanobis_distance_minimizer.h"
 #include "nonlinear_optimizer/mahalanobis_distance_minimizer/types.h"
-#include "nonlinear_optimizer/simd_helper/simd_helper.h"
 #include "nonlinear_optimizer/types.h"
+
+#include "simd_helper/simd_helper.h"
 
 namespace nonlinear_optimizer {
 namespace mahalanobis_distance_minimizer {
