@@ -26,10 +26,10 @@ bool ReprojectionErrorMinimizerAnalyticSIMD::Solve(
     abuf.py[index] = corr.matched_pixel.y();
   }
 
-  simd::ScalarF inv_fx__(1.0f / camera_intrinsics.fx);
-  simd::ScalarF inv_fy__(1.0f / camera_intrinsics.fy);
-  simd::ScalarF cx__(camera_intrinsics.cx);
-  simd::ScalarF cy__(camera_intrinsics.cy);
+  simd::Scalar inv_fx__(1.0f / camera_intrinsics.fx);
+  simd::Scalar inv_fy__(1.0f / camera_intrinsics.fy);
+  simd::Scalar cx__(camera_intrinsics.cx);
+  simd::Scalar cy__(camera_intrinsics.cy);
 
   constexpr double min_lambda = 1e-6;
   constexpr double max_lambda = 1e-2;
@@ -43,55 +43,55 @@ bool ReprojectionErrorMinimizerAnalyticSIMD::Solve(
   double previous_cost = std::numeric_limits<double>::max();
   int iteration = 0;
   for (; iteration < options.max_iterations; ++iteration) {
-    simd::MatrixF<3, 3> R__(
+    simd::Matrix<3, 3> R__(
         optimized_orientation.toRotationMatrix().cast<float>());
-    simd::VectorF<3> t__(optimized_translation.cast<float>());
+    simd::Vector<3> t__(optimized_translation.cast<float>());
 
-    simd::VectorF<6> gradient__(Eigen::Matrix<float, 6, 1>::Zero());
-    simd::MatrixF<6, 6> hessian__(Eigen::Matrix<float, 6, 6>::Zero());
-    simd::ScalarF cost__(0.0);
-    const size_t stride = simd::ScalarF::GetDataStep();
+    simd::Vector<6> gradient__(Eigen::Matrix<float, 6, 1>::Zero());
+    simd::Matrix<6, 6> hessian__(Eigen::Matrix<float, 6, 6>::Zero());
+    simd::Scalar cost__(0.0);
+    const size_t stride = simd::Scalar::data_stride;
     const int num_stride = correspondences.size() / stride;
     for (size_t point_idx = 0; point_idx < num_stride * stride;
          point_idx += stride) {
-      simd::VectorF<3> X__(
+      simd::Vector<3> X__(
           {abuf.x + point_idx, abuf.y + point_idx, abuf.z + point_idx});
-      simd::VectorF<2> matched_pixel__(
+      simd::Vector<2> matched_pixel__(
           std::vector<float*>{abuf.px + point_idx, abuf.py + point_idx});
 
       // Xw = R*X + t
-      const simd::VectorF<3> Xw__ = R__ * X__ + t__;
+      const simd::Vector<3> Xw__ = R__ * X__ + t__;
 
       // Check if any element in Xw__(2) is less than 0
-      simd::ScalarF is_nonzero__ = Xw__(2) > 0.0f;
+      simd::Scalar is_nonzero__ = Xw__(2) > 0.0f;
 
-      simd::VectorF<2> r__;
-      simd::ScalarF inv_zw__ = simd::ScalarF(1.0f) / Xw__(2);
+      simd::Vector<2> r__;
+      simd::Scalar inv_zw__ = simd::Scalar(1.0f) / Xw__(2);
       r__(0) = Xw__(0) * inv_zw__ - inv_fx__ * (matched_pixel__(0) - cx__);
       r__(1) = Xw__(1) * inv_zw__ - inv_fy__ * (matched_pixel__(1) - cy__);
 
       // Compute loss and weight,
       // and add the local gradient and hessian to the global ones
-      simd::ScalarF sq_r__ = r__.GetNorm();
-      simd::ScalarF loss__(sq_r__);
-      simd::ScalarF weight__(1.0);
+      simd::Scalar sq_r__ = r__.norm();
+      simd::Scalar loss__(sq_r__);
+      simd::Scalar weight__(1.0);
       if (loss_function_ != nullptr) {
         float sq_r_buf[8];
         sq_r__.StoreData(sq_r_buf);
         float loss_buf[8];
         float weight_buf[8];
-        for (int k = 0; k < _SIMD_DATA_STEP_FLOAT; ++k) {
+        for (size_t k = 0; k < simd::Scalar::data_stride; ++k) {
           double loss_output[3] = {0.0, 0.0, 0.0};
           loss_function_->Evaluate(sq_r_buf[k], loss_output);
           loss_buf[k] = loss_output[0];
           weight_buf[k] = loss_output[1];
         }
-        loss__ = simd::ScalarF(loss_buf);
-        weight__ = simd::ScalarF(weight_buf);
+        loss__ = simd::Scalar(loss_buf);
+        weight__ = simd::Scalar(weight_buf);
       }
       weight__ *= is_nonzero__;
 
-      simd::MatrixF<3, 3> m_R_skewX__(Mat3x3f::Zero());
+      simd::Matrix<3, 3> m_R_skewX__(Mat3x3f::Zero());
       m_R_skewX__(0, 0) = R__(0, 2) * X__(1) - R__(0, 1) * X__(2);
       m_R_skewX__(1, 0) = R__(1, 2) * X__(1) - R__(1, 1) * X__(2);
       m_R_skewX__(2, 0) = R__(2, 2) * X__(1) - R__(2, 1) * X__(2);
@@ -102,10 +102,10 @@ bool ReprojectionErrorMinimizerAnalyticSIMD::Solve(
       m_R_skewX__(1, 2) = R__(1, 1) * X__(0) - R__(1, 0) * X__(1);
       m_R_skewX__(2, 2) = R__(2, 1) * X__(0) - R__(2, 0) * X__(1);
 
-      simd::MatrixF<2, 6> J__(Eigen::Matrix<float, 2, 6>::Zero());
-      const simd::ScalarF inv_zwzw__ = inv_zw__ * inv_zw__;
-      const simd::ScalarF xw_inv_zwzw__ = Xw__(0) * inv_zwzw__;
-      const simd::ScalarF yw_inv_zwzw__ = Xw__(1) * inv_zwzw__;
+      simd::Matrix<2, 6> J__(Eigen::Matrix<float, 2, 6>::Zero());
+      const simd::Scalar inv_zwzw__ = inv_zw__ * inv_zw__;
+      const simd::Scalar xw_inv_zwzw__ = Xw__(0) * inv_zwzw__;
+      const simd::Scalar yw_inv_zwzw__ = Xw__(1) * inv_zwzw__;
       J__(0, 0) = inv_zw__;
       J__(0, 2) = -xw_inv_zwzw__;
       J__(1, 1) = inv_zw__;
@@ -137,20 +137,20 @@ bool ReprojectionErrorMinimizerAnalyticSIMD::Solve(
       cost__ += loss__;
     }
 
-    float buf[_SIMD_DATA_STEP_FLOAT];
+    float buf[simd::Scalar::data_stride];
     cost__.StoreData(buf);
     float cost = 0.0;
-    for (int kk = 0; kk < _SIMD_DATA_STEP_FLOAT; ++kk) cost += buf[kk];
+    for (size_t kk = 0; kk < simd::Scalar::data_stride; ++kk) cost += buf[kk];
 
     Mat6x6 hessian{Mat6x6::Zero()};
     Vec6 gradient{Vec6::Zero()};
     for (int ii = 0; ii < 6; ++ii) {
       gradient__(ii).StoreData(buf);
-      for (int kk = 0; kk < _SIMD_DATA_STEP_FLOAT; ++kk)
+      for (size_t kk = 0; kk < simd::Scalar::data_stride; ++kk)
         gradient(ii) += buf[kk];
       for (int jj = ii; jj < 6; ++jj) {
         hessian__(ii, jj).StoreData(buf);
-        for (int kk = 0; kk < _SIMD_DATA_STEP_FLOAT; ++kk)
+        for (size_t kk = 0; kk < simd::Scalar::data_stride; ++kk)
           hessian(ii, jj) += buf[kk];
       }
     }
