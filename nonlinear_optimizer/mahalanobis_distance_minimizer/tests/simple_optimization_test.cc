@@ -37,9 +37,9 @@ VoxelKey ComputeVoxelKey(const Vec3& point,
 std::vector<Correspondence> MatchPointCloud(
     const NdtMap& ndt_map, const std::vector<Vec3>& local_points,
     const Pose& pose);
-Pose OptimizePoseOriginal(const NdtMap& ndt_map,
-                          const std::vector<Vec3>& local_points,
-                          const Pose& pose);
+Pose OptimizePoseOriginalCeres(const NdtMap& ndt_map,
+                               const std::vector<Vec3>& local_points,
+                               const Pose& pose);
 Pose OptimizePoseSimplified(const NdtMap& ndt_map,
                             const std::vector<Vec3>& local_points,
                             const Pose& initial_pose);
@@ -86,7 +86,7 @@ int main(int, char**) {
   Pose initial_pose{Pose::Identity()};
   std::cerr << "Start OptimizedPoseOriginal" << std::endl;
   const auto opt_pose_ceres_redundant =
-      OptimizePoseOriginal(ndt_map, local_points, initial_pose);
+      OptimizePoseOriginalCeres(ndt_map, local_points, initial_pose);
   std::cerr << "Start OptimizePoseSimplified" << std::endl;
   const auto opt_pose_ceres_simplified =
       OptimizePoseSimplified(ndt_map, local_points, initial_pose);
@@ -311,9 +311,9 @@ std::vector<Correspondence> MatchPointCloud(
   return correspondences;
 }
 
-Pose OptimizePoseOriginal(const NdtMap& ndt_map,
-                          const std::vector<Vec3>& local_points,
-                          const Pose& initial_pose) {
+Pose OptimizePoseOriginalCeres(const NdtMap& ndt_map,
+                               const std::vector<Vec3>& local_points,
+                               const Pose& initial_pose) {
   CHECK_EXEC_TIME_FROM_HERE
 
   double optimized_translation[3] = {initial_pose.translation().x(),

@@ -13,6 +13,7 @@
 #include "nonlinear_optimizer/mahalanobis_distance_minimizer/mahalanobis_distance_minimizer.h"
 #include "nonlinear_optimizer/mahalanobis_distance_minimizer/mahalanobis_distance_minimizer_analytic.h"
 #include "nonlinear_optimizer/mahalanobis_distance_minimizer/mahalanobis_distance_minimizer_analytic_3dof.h"
+#include "nonlinear_optimizer/mahalanobis_distance_minimizer/mahalanobis_distance_minimizer_analytic_3dof_simd.h"
 #include "nonlinear_optimizer/mahalanobis_distance_minimizer/mahalanobis_distance_minimizer_analytic_simd.h"
 #include "nonlinear_optimizer/mahalanobis_distance_minimizer/mahalanobis_distance_minimizer_ceres.h"
 #include "nonlinear_optimizer/time_checker.h"
@@ -37,15 +38,18 @@ VoxelKey ComputeVoxelKey(const Vec3& point,
 std::vector<Correspondence> MatchPointCloud(
     const NdtMap& ndt_map, const std::vector<Vec3>& local_points,
     const Pose& pose);
-Pose OptimizePoseOriginal(const NdtMap& ndt_map,
-                          const std::vector<Vec3>& local_points,
-                          const Pose& pose);
+Pose OptimizePoseOriginalCeres(const NdtMap& ndt_map,
+                               const std::vector<Vec3>& local_points,
+                               const Pose& pose);
 Pose OptimizePoseAnalytic(const NdtMap& ndt_map,
                           const std::vector<Vec3>& local_points,
                           const Pose& initial_pose);
 Pose OptimizePoseAnalytic3dof(const NdtMap& ndt_map,
                               const std::vector<Vec3>& local_points,
                               const Pose& initial_pose);
+Pose OptimizePoseAnalytic3dofSimd(const NdtMap& ndt_map,
+                                  const std::vector<Vec3>& local_points,
+                                  const Pose& initial_pose);
 Pose OptimizePoseAnalyticSimd(const NdtMap& ndt_map,
                               const std::vector<Vec3>& local_points,
                               const Pose& initial_pose);
@@ -81,12 +85,15 @@ int main(int, char**) {
 
   // Optimize pose
   Pose initial_pose{Pose::Identity()};
-  std::cerr << "Start OptimizedPoseOriginal" << std::endl;
+  std::cerr << "Start OptimizePoseOriginalCeres" << std::endl;
   const auto opt_pose_ceres_redundant =
-      OptimizePoseOriginal(ndt_map, local_points, initial_pose);
+      OptimizePoseOriginalCeres(ndt_map, local_points, initial_pose);
   std::cerr << "Start OptimizePoseAnalytic3DoF" << std::endl;
   const auto opt_pose_analytic_3dof =
       OptimizePoseAnalytic3dof(ndt_map, local_points, initial_pose);
+  std::cerr << "Start OptimizePoseAnalytic3DoFSIMD" << std::endl;
+  const auto opt_pose_analytic_3dof_simd =
+      OptimizePoseAnalytic3dofSimd(ndt_map, local_points, initial_pose);
   std::cerr << "Start OptimizePoseAnalytic" << std::endl;
   const auto opt_pose_analytic =
       OptimizePoseAnalytic(ndt_map, local_points, initial_pose);
@@ -103,6 +110,12 @@ int main(int, char**) {
   std::cerr << "Pose (analytic 3dof): "
             << opt_pose_analytic_3dof.translation().transpose() << " "
             << Eigen::Quaterniond(opt_pose_analytic_3dof.linear())
+                   .coeffs()
+                   .transpose()
+            << std::endl;
+  std::cerr << "Pose (analytic 3dof simd): "
+            << opt_pose_analytic_3dof_simd.translation().transpose() << " "
+            << Eigen::Quaterniond(opt_pose_analytic_3dof_simd.linear())
                    .coeffs()
                    .transpose()
             << std::endl;
@@ -301,9 +314,9 @@ std::vector<Correspondence> MatchPointCloud(
   return correspondences;
 }
 
-Pose OptimizePoseOriginal(const NdtMap& ndt_map,
-                          const std::vector<Vec3>& local_points,
-                          const Pose& initial_pose) {
+Pose OptimizePoseOriginalCeres(const NdtMap& ndt_map,
+                               const std::vector<Vec3>& local_points,
+                               const Pose& initial_pose) {
   CHECK_EXEC_TIME_FROM_HERE
 
   double optimized_translation[3] = {initial_pose.translation().x(),
@@ -417,6 +430,40 @@ Pose OptimizePoseAnalytic3dof(const NdtMap& ndt_map,
         optim = std::make_unique<
             nonlinear_optimizer::mahalanobis_distance_minimizer::
                 MahalanobisDistanceMinimizerAnalytic3DOF>();
+    optim->SetLossFunction(
+        std::make_shared<nonlinear_optimizer::ExponentialLossFunction>(1.0,
+                                                                       1.0));
+    optim->Solve(options, correspondences, &optimized_pose);
+
+    Pose pose_diff = optimized_pose.inverse() * last_optimized_pose;
+    if (pose_diff.translation().norm() < 1e-5 &&
+        Orientation(pose_diff.linear()).vec().norm() < 1e-5) {
+      break;
+    }
+    last_optimized_pose = optimized_pose;
+  }
+  std::cerr << "outer_iter: " << outer_iter << std::endl;
+
+  return optimized_pose;
+}
+
+Pose OptimizePoseAnalytic3dofSimd(const NdtMap& ndt_map,
+                                  const std::vector<Vec3>& local_points,
+                                  const Pose& initial_pose) {
+  CHECK_EXEC_TIME_FROM_HERE
+
+  Pose optimized_pose = initial_pose;
+  Pose last_optimized_pose = optimized_pose;
+  int outer_iter = 0;
+  for (; outer_iter < 10; ++outer_iter) {
+    const auto correspondences =
+        MatchPointCloud(ndt_map, local_points, optimized_pose);
+
+    std::unique_ptr<nonlinear_optimizer::mahalanobis_distance_minimizer::
+                        MahalanobisDistanceMinimizer>
+        optim = std::make_unique<
+            nonlinear_optimizer::mahalanobis_distance_minimizer::
+                MahalanobisDistanceMinimizerAnalytic3DOFSIMD>();
     optim->SetLossFunction(
         std::make_shared<nonlinear_optimizer::ExponentialLossFunction>(1.0,
                                                                        1.0));

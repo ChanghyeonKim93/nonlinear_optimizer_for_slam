@@ -28,6 +28,7 @@ add_executable(
   mahalanobis_distance_minimizer_ceres.cc
   mahalanobis_distance_minimizer_analytic.cc
   mahalanobis_distance_minimizer_analytic_3dof.cc
+  mahalanobis_distance_minimizer_analytic_3dof_simd.cc
   mahalanobis_distance_minimizer_analytic_simd.cc
   ${UTILITY_SRC})
 target_include_directories(
