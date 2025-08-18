@@ -40,8 +40,8 @@ target_link_libraries(
 
 if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64")
   add_executable(
-    ${PROJECT_NAME}_tests_simd_comparison_test
-    tests/simd_comparison_test.cc
+    ${PROJECT_NAME}_tests_simd_implementation_comparison_test
+    tests/simd_implementation_comparison_test.cc
     mahalanobis_distance_minimizer_ceres.cc
     mahalanobis_distance_minimizer_analytic.cc
     mahalanobis_distance_minimizer_analytic_simd.cc
@@ -49,11 +49,11 @@ if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64")
     mahalanobis_distance_minimizer_analytic_3dof.cc
     ${UTILITY_SRC})
   target_include_directories(
-    ${PROJECT_NAME}_tests_simd_comparison_test
+    ${PROJECT_NAME}_tests_simd_implementation_comparison_test
     PUBLIC ${CMAKE_SOURCE_DIR} # Include the parent CMake file's directory
            ${EIGEN3_INCLUDE_DIRS} ${CERES_INCLUDE_DIRS}
            ${PC_FLANN_INCLUDE_DIRS})
   target_link_libraries(
-    ${PROJECT_NAME}_tests_simd_comparison_test
+    ${PROJECT_NAME}_tests_simd_implementation_comparison_test
     PRIVATE ${CERES_LIBRARIES} ${FLANN_LIBRARIES} simd_helper::simd_helper)
 endif()
