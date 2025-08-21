@@ -70,40 +70,6 @@ bool MahalanobisDistanceMinimizerAnalyticSIMD::Solve(
            abuf.sqrt_info[1][1] + point_idx, abuf.sqrt_info[1][2] + point_idx,
            abuf.sqrt_info[2][0] + point_idx, abuf.sqrt_info[2][1] + point_idx,
            abuf.sqrt_info[2][2] + point_idx});
-      // simd::Vector<3> p__(
-      //     {correspondences.at(point_idx).point.cast<float>(),
-      //      correspondences.at(point_idx + 1).point.cast<float>(),
-      //      correspondences.at(point_idx + 2).point.cast<float>(),
-      //      correspondences.at(point_idx + 3).point.cast<float>(),
-      //      correspondences.at(point_idx + 4).point.cast<float>(),
-      //      correspondences.at(point_idx + 5).point.cast<float>(),
-      //      correspondences.at(point_idx + 6).point.cast<float>(),
-      //      correspondences.at(point_idx + 7).point.cast<float>()});
-      // simd::Vector<3> mu__(
-      //     {correspondences.at(point_idx).ndt.mean.cast<float>(),
-      //      correspondences.at(point_idx + 1).ndt.mean.cast<float>(),
-      //      correspondences.at(point_idx + 2).ndt.mean.cast<float>(),
-      //      correspondences.at(point_idx + 3).ndt.mean.cast<float>(),
-      //      correspondences.at(point_idx + 4).ndt.mean.cast<float>(),
-      //      correspondences.at(point_idx + 5).ndt.mean.cast<float>(),
-      //      correspondences.at(point_idx + 6).ndt.mean.cast<float>(),
-      //      correspondences.at(point_idx + 7).ndt.mean.cast<float>()});
-      // simd::Matrix<3, 3> sqrt_info__(
-      //     {correspondences.at(point_idx).ndt.sqrt_information.cast<float>(),
-      //      correspondences.at(point_idx +
-      //      1).ndt.sqrt_information.cast<float>(),
-      //      correspondences.at(point_idx +
-      //      2).ndt.sqrt_information.cast<float>(),
-      //      correspondences.at(point_idx +
-      //      3).ndt.sqrt_information.cast<float>(),
-      //      correspondences.at(point_idx +
-      //      4).ndt.sqrt_information.cast<float>(),
-      //      correspondences.at(point_idx +
-      //      5).ndt.sqrt_information.cast<float>(),
-      //      correspondences.at(point_idx +
-      //      6).ndt.sqrt_information.cast<float>(),
-      //      correspondences.at(point_idx + 7)
-      //          .ndt.sqrt_information.cast<float>()});
 
       // clang-format off
       // pw = R*p + t
