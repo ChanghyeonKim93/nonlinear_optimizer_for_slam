@@ -1,0 +1,81 @@
+
+raspberry pi4b
+# points: 954605
+Ndt map size: 96
+Start OptimizePoseOriginalCeres
+outer_iter: 4
+Start OptimizePoseAnalytic3DoF
+COST: 17869.6, iter: 40
+COST: 17629.7, iter: 40
+COST: 17607.7, iter: 21
+COST: 17599.6, iter: 6
+COST: 1.79769e+308, iter: 0
+outer_iter: 4
+Start OptimizePoseAnalytic3DoFSIMD
+COST: 17866.8, iter: 40
+COST: 17620.4, iter: 40
+COST: 17607.7, iter: 19
+COST: 17599.7, iter: 5
+COST: 3.40282e+38, iter: 0
+outer_iter: 4
+Start OptimizePoseAnalytic
+COST: 17851.2, iter: 40
+COST: 17536.4, iter: 40
+COST: 17498.5, iter: 32
+COST: 17490.3, iter: 11
+COST: 1.79769e+308, iter: 0
+outer_iter: 4
+Start OptimizePoseAnalyticSIMD
+COST: 17851.2, iter: 40
+COST: 17536.5, iter: 40
+COST: 17498.5, iter: 32
+COST: 17490.4, iter: 11
+COST: 3.40282e+38, iter: 0
+outer_iter: 4
+Pose (ceres redundant): -0.140614 0.0499119 0.0117871 0.000118926  -0.0027157   0.0996485    0.994581
+Pose (analytic 3dof):  -0.150057 -0.0432264          0         0         0 0.0993355  0.995054
+Pose (analytic 3dof simd):  -0.150069 -0.0433384          0         0         0 0.0993377  0.995054
+Pose (analytic):   -0.14567  0.0483819 0.00481624 -0.000167223  -0.00123856    0.0998263     0.995004
+Pose (analytic simd):   -0.14567  0.0483819 0.00481626 -0.000167219  -0.00123857    0.0998263     0.995004
+True pose: -0.15  0.05     0         0         0 0.0998334  0.995004
+------------ Time Analysis ------------
+/home/chk/github_code/nonlinear_optimizer_for_slam/nonlinear_optimizer/mahalanobis_distance_minimizer/tests/3dof_6dof_comparison_test.cc/OptimizePoseAnalytic
+           calls: 1
+             min:     1446.336630 [ms]
+             max:     1446.336630 [ms]
+             avg:     1446.336630 [ms]
+             std:        0.000000 [ms]
+ total occupancy:     1446.336630 [ms]
+ -----------------------------------------------
+/home/chk/github_code/nonlinear_optimizer_for_slam/nonlinear_optimizer/mahalanobis_distance_minimizer/tests/3dof_6dof_comparison_test.cc/OptimizePoseAnalytic3dof
+           calls: 1
+             min:      525.900000 [ms]
+             max:      525.900000 [ms]
+             avg:      525.900000 [ms]
+             std:        0.000000 [ms]
+ total occupancy:      525.900000 [ms]
+ -----------------------------------------------
+/home/chk/github_code/nonlinear_optimizer_for_slam/nonlinear_optimizer/mahalanobis_distance_minimizer/tests/3dof_6dof_comparison_test.cc/OptimizePoseAnalytic3dofSimd
+           calls: 1
+             min:      367.340942 [ms]
+             max:      367.340942 [ms]
+             avg:      367.340942 [ms]
+             std:        0.000000 [ms]
+ total occupancy:      367.340942 [ms]
+ -----------------------------------------------
+/home/chk/github_code/nonlinear_optimizer_for_slam/nonlinear_optimizer/mahalanobis_distance_minimizer/tests/3dof_6dof_comparison_test.cc/OptimizePoseAnalyticSimd
+           calls: 1
+             min:      592.079323 [ms]
+             max:      592.079323 [ms]
+             avg:      592.079323 [ms]
+             std:        0.000000 [ms]
+ total occupancy:      592.079323 [ms]
+ -----------------------------------------------
+/home/chk/github_code/nonlinear_optimizer_for_slam/nonlinear_optimizer/mahalanobis_distance_minimizer/tests/3dof_6dof_comparison_test.cc/OptimizePoseOriginalCeres
+           calls: 1
+             min:     3038.527652 [ms]
+             max:     3038.527652 [ms]
+             avg:     3038.527652 [ms]
+             std:        0.000000 [ms]
+ total occupancy:     3038.527652 [ms]
+ -----------------------------------------------
