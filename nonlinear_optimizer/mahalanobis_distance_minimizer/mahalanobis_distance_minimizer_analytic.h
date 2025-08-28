@@ -22,6 +22,11 @@ class MahalanobisDistanceMinimizerAnalytic
              Pose* pose) final;
 
  private:
+  PartialResult ComputeCostAndDerivatives(
+      const Mat3x3& rotation, const Vec3& translation,
+      const std::vector<Correspondence>* correspondences,
+      const size_t start_index, const size_t end_index);
+
   void ComputeJacobianAndResidual(const Mat3x3& rotation,
                                   const Vec3& translation,
                                   const Correspondence& corr, Mat3x6* jacobian,

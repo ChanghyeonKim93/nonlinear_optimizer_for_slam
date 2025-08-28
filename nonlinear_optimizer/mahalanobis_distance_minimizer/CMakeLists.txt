@@ -1,6 +1,8 @@
 project(${CMAKE_PROJECT_NAME}_mahalanobis_distance_minimizer)
 message("  -- [SUBPROJECT]: " ${PROJECT_NAME})
-
+if(NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE Release)
+endif()
 find_package(Eigen3 REQUIRED)
 find_package(Ceres REQUIRED)
 find_package(simd_helper REQUIRED)

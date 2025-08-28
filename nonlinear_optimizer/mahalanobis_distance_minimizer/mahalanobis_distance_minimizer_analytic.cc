@@ -9,9 +9,75 @@ MahalanobisDistanceMinimizerAnalytic::MahalanobisDistanceMinimizerAnalytic() {}
 
 MahalanobisDistanceMinimizerAnalytic::~MahalanobisDistanceMinimizerAnalytic() {}
 
+PartialResult MahalanobisDistanceMinimizerAnalytic::ComputeCostAndDerivatives(
+    const Mat3x3& rotation, const Vec3& translation,
+    const std::vector<Correspondence>* correspondences,
+    const size_t start_index, const size_t end_index) {
+  PartialResult partial_result;
+  Mat3x6 jacobian{Mat3x6::Zero()};
+  Vec3 residual{Vec3::Zero()};
+  Vec6 local_gradient{Vec6::Zero()};
+  Mat6x6 local_hessian{Mat6x6::Zero()};
+  for (size_t i = start_index; i < end_index; ++i) {
+    const auto& corr = correspondences->at(i);
+
+    ComputeJacobianAndResidual(rotation, translation, corr, &jacobian,
+                               &residual);
+
+    // Compute the local gradient
+    local_gradient = jacobian.transpose() * residual;
+
+    // Compute the local hessian
+    ComputeHessianOnlyUpperTriangle(jacobian, &local_hessian);
+
+    // Compute loss and weight,
+    // and add the local gradient and hessian to the global ones
+    const double squared_residual = residual.transpose() * residual;
+    if (loss_function_ != nullptr) {
+      double loss_output[3] = {0.0, 0.0, 0.0};
+      loss_function_->Evaluate(squared_residual, loss_output);
+      const double weight = loss_output[1];
+      partial_result.gradient += weight * local_gradient;
+      MultiplyWeightOnlyUpperTriangle(weight, &local_hessian);
+      AddHessianOnlyUpperTriangle(local_hessian, &partial_result.hessian);
+      partial_result.cost += loss_output[0];
+    } else {
+      partial_result.gradient += local_gradient;
+      AddHessianOnlyUpperTriangle(local_hessian, &partial_result.hessian);
+      partial_result.cost += squared_residual;
+    }
+  }
+  // std::cerr << "END PARTIAL" << std::endl;
+  return partial_result;
+}
+
 bool MahalanobisDistanceMinimizerAnalytic::Solve(
     const Options& options, const std::vector<Correspondence>& correspondences,
     Pose* pose) {
+  std::chrono::steady_clock::time_point begin =
+      std::chrono::steady_clock::now();
+  std::vector<std::vector<Correspondence>> partial_correspondences_list;
+  if (multi_thread_executor_ != nullptr) {
+    const int num_threads = multi_thread_executor_->GetNumOfTotalThreads();
+    const int num_correspondences = static_cast<int>(correspondences.size());
+    const int num_batch = static_cast<int>(
+        std::max(1.0, static_cast<double>(num_correspondences) / num_threads));
+    for (int idx = 0; idx < num_threads; ++idx) {
+      partial_correspondences_list.push_back(std::vector<Correspondence>());
+      auto& corrs = partial_correspondences_list.at(idx);
+      corrs.reserve(std::max(num_batch, num_correspondences - idx * num_batch));
+      for (int j = idx * num_batch;
+           j < std::min((idx + 1) * num_batch, num_correspondences); ++j)
+        corrs.emplace_back(correspondences[j]);
+    }
+  }
+  std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+  std::cerr << "SPLIT TIME: "
+            << std::chrono::duration_cast<std::chrono::milliseconds>(end -
+                                                                     begin)
+                   .count()
+            << "[ms]" << std::endl;
+
   constexpr double min_lambda = 1e-6;
   constexpr double max_lambda = 1e-2;
 
@@ -27,43 +93,32 @@ bool MahalanobisDistanceMinimizerAnalytic::Solve(
     Mat6x6 hessian{Mat6x6::Zero()};
     Vec6 gradient{Vec6::Zero()};
 
-    const size_t stride = 4;
-    const int num_stride = correspondences.size() / stride;
     double cost = 0.0;
-    for (size_t i = 0; i < stride * num_stride; ++i) {
-      const auto& corr = correspondences.at(i);
-
-      Mat3x6 jacobian{Mat3x6::Zero()};
-      Vec3 residual{Vec3::Zero()};
-      ComputeJacobianAndResidual(optimized_orientation.toRotationMatrix(),
-                                 optimized_translation, corr, &jacobian,
-                                 &residual);
-
-      // Compute the local gradient
-      Vec6 local_gradient{Vec6::Zero()};
-      local_gradient = jacobian.transpose() * residual;
-
-      // Compute the local hessian
-      Mat6x6 local_hessian{Mat6x6::Zero()};
-      ComputeHessianOnlyUpperTriangle(jacobian, &local_hessian);
-
-      // Compute loss and weight,
-      // and add the local gradient and hessian to the global ones
-      const double squared_residual = residual.transpose() * residual;
-      if (loss_function_ != nullptr) {
-        double loss_output[3] = {0.0, 0.0, 0.0};
-        loss_function_->Evaluate(squared_residual, loss_output);
-        const double weight = loss_output[1];
-        gradient += weight * local_gradient;
-        MultiplyWeightOnlyUpperTriangle(weight, &local_hessian);
-        AddHessianOnlyUpperTriangle(local_hessian, &hessian);
-        cost += loss_output[0];
-      } else {
-        gradient += local_gradient;
-        AddHessianOnlyUpperTriangle(local_hessian, &hessian);
-        cost += squared_residual;
+    if (multi_thread_executor_ == nullptr) {
+      auto result = ComputeCostAndDerivatives(
+          optimized_orientation.toRotationMatrix(), optimized_translation,
+          &correspondences, 0, correspondences.size());
+      gradient = result.gradient;
+      hessian = result.hessian;
+      cost = result.cost;
+    } else {
+      const int num_threads = multi_thread_executor_->GetNumOfTotalThreads();
+      std::vector<std::future<PartialResult>> partial_results;
+      for (int i = 0; i < num_threads; ++i) {
+        partial_results.emplace_back(multi_thread_executor_->Execute(
+            &MahalanobisDistanceMinimizerAnalytic::ComputeCostAndDerivatives,
+            this, optimized_orientation.toRotationMatrix(),
+            optimized_translation, &partial_correspondences_list.at(i), 0,
+            partial_correspondences_list.at(i).size()));
+      }
+      for (auto& future : partial_results) {
+        const auto& result = future.get();
+        gradient += result.gradient;
+        AddHessianOnlyUpperTriangle(result.hessian, &hessian);
+        cost += result.cost;
       }
     }
+
     // Reflect the hessian
     ReflectHessian(&hessian);
 
@@ -71,7 +126,6 @@ bool MahalanobisDistanceMinimizerAnalytic::Solve(
     for (int k = 0; k < 6; k++) hessian(k, k) *= 1.0 + lambda;
 
     // Compute the step
-    // const Vec6 update_step = hessian.ldlt().solve(-gradient);
     const Vec6 update_step = hessian.inverse() * (-gradient);
 
     // Update the pose
@@ -89,11 +143,7 @@ bool MahalanobisDistanceMinimizerAnalytic::Solve(
       break;
     }
 
-    if (cost > previous_cost) {
-      lambda *= 2.0;
-    } else {
-      lambda *= 0.6;
-    }
+    lambda *= (cost > previous_cost ? 2.0 : 0.6);
     lambda = std::clamp(lambda, min_lambda, max_lambda);
     previous_cost = cost;
   }
@@ -114,13 +164,13 @@ void MahalanobisDistanceMinimizerAnalytic::ComputeJacobianAndResidual(
   const auto& p = corr.point;
   const auto& sqrt_information = corr.ndt.sqrt_information;
 
-  Vec3 p_warped = R * p + t;
-  Vec3 e_i = p_warped - corr.ndt.mean;
+  const Vec3& p_warped = R * p + t;
+  const Vec3& e_i = p_warped - corr.ndt.mean;
 
   // Compute the residual
   *residual = sqrt_information * e_i;  // residual
 
-  static auto skew = [](const Vec3& v) {
+  auto skew = [](const Vec3& v) {
     Mat3x3 skew{Mat3x3::Zero()};
     skew << 0.0, -v.z(), v.y(),  //
         v.z(), 0.0, -v.x(),      //
@@ -130,16 +180,6 @@ void MahalanobisDistanceMinimizerAnalytic::ComputeJacobianAndResidual(
 
   // Compute the Jacobian
   Mat3x3 R_skew_p = R * skew(p);
-  //   Mat3x3 R_skew_p{Mat3x3::Zero()};
-  //   R_skew_p(0, 0) = R(0, 1) * p(2) - R(0, 2) * p(1);
-  //   R_skew_p(0, 1) = R(0, 2) * p(0) - R(0, 0) * p(2);
-  //   R_skew_p(0, 2) = R(0, 0) * p(1) - R(0, 1) * p(0);
-  //   R_skew_p(1, 0) = R(1, 1) * p(2) - R(1, 2) * p(1);
-  //   R_skew_p(1, 1) = R(1, 2) * p(0) - R(1, 0) * p(2);
-  //   R_skew_p(1, 2) = R(1, 0) * p(1) - R(1, 1) * p(0);
-  //   R_skew_p(2, 0) = R(2, 1) * p(2) - R(2, 2) * p(1);
-  //   R_skew_p(2, 1) = R(2, 2) * p(0) - R(2, 0) * p(2);
-  //   R_skew_p(2, 2) = R(2, 0) * p(1) - R(2, 1) * p(0);
   (*jacobian).block<3, 3>(0, 0) = sqrt_information;
   (*jacobian).block<3, 3>(0, 3) = -sqrt_information * R_skew_p;
 }
