@@ -147,23 +147,10 @@ MahalanobisDistanceMinimizerAnalyticSIMD::ComputeCostAndDerivatives(
     const simd::Vector<3> e__ = pw__ - mu__;
     const simd::Vector<3> r__ = sqrt_info__ * e__;
 
-    simd::Matrix<3, 3> minus_R_skewp__;
-    minus_R_skewp__(0, 0) = R__(0, 2) * p__(1) - R__(0, 1) * p__(2);
-    minus_R_skewp__(1, 0) = R__(1, 2) * p__(1) - R__(1, 1) * p__(2);
-    minus_R_skewp__(2, 0) = R__(2, 2) * p__(1) - R__(2, 1) * p__(2);
-    minus_R_skewp__(0, 1) = R__(0, 0) * p__(2) - R__(0, 2) * p__(0);
-    minus_R_skewp__(1, 1) = R__(1, 0) * p__(2) - R__(1, 2) * p__(0);
-    minus_R_skewp__(2, 1) = R__(2, 0) * p__(2) - R__(2, 2) * p__(0);
-    minus_R_skewp__(0, 2) = R__(0, 1) * p__(0) - R__(0, 0) * p__(1);
-    minus_R_skewp__(1, 2) = R__(1, 1) * p__(0) - R__(1, 0) * p__(1);
-    minus_R_skewp__(2, 2) = R__(2, 1) * p__(0) - R__(2, 0) * p__(1);
-    const simd::Matrix<3, 3> sqrt_info_minus_R_skewp_ =
-        sqrt_info__ * minus_R_skewp__;
-
     // Direct calculation is far faster than helper operator.
     simd::Matrix<3, 6> J__;
     J__.block<3, 3>(0, 0) = sqrt_info__;
-    J__.block<3, 3>(0, 3) = sqrt_info_minus_R_skewp_;
+    J__.block<3, 3>(0, 3) = -sqrt_info__ * R__ * p__.hat();
 
     // Compute loss and weight,
     // and add the local gradient and hessian to the global ones
