@@ -57,6 +57,10 @@ Pose OptimizePoseAnalyticThreads(
 Pose OptimizePoseAnalyticSimd(const NdtMap& ndt_map,
                               const std::vector<Vec3>& local_points,
                               const Pose& initial_pose);
+Pose OptimizePoseAnalyticSimdThreads(
+    const NdtMap& ndt_map, const std::vector<Vec3>& local_points,
+    const Pose& initial_pose,
+    const std::shared_ptr<MultiThreadExecutor>& executor);
 
 }  // namespace mahalanobis_distance_minimizer
 }  // namespace nonlinear_optimizer
@@ -110,6 +114,9 @@ int main(int, char**) {
   std::cerr << "Start OptimizePoseAnalyticSIMD" << std::endl;
   const auto opt_pose_analytic_simd =
       OptimizePoseAnalyticSimd(ndt_map, local_points, initial_pose);
+  std::cerr << "Start OptimizePoseAnalyticSIMDThreads" << std::endl;
+  const auto opt_pose_analytic_simd_threads = OptimizePoseAnalyticSimdThreads(
+      ndt_map, local_points, initial_pose, executor);
 
   std::cerr << "Pose (ceres redundant): "
             << opt_pose_ceres_redundant.translation().transpose() << " "
@@ -141,6 +148,12 @@ int main(int, char**) {
   std::cerr << "Pose (analytic simd): "
             << opt_pose_analytic_simd.translation().transpose() << " "
             << Eigen::Quaterniond(opt_pose_analytic_simd.linear())
+                   .coeffs()
+                   .transpose()
+            << std::endl;
+  std::cerr << "Pose (analytic simd threads): "
+            << opt_pose_analytic_simd_threads.translation().transpose() << " "
+            << Eigen::Quaterniond(opt_pose_analytic_simd_threads.linear())
                    .coeffs()
                    .transpose()
             << std::endl;
@@ -547,6 +560,42 @@ Pose OptimizePoseAnalyticSimd(const NdtMap& ndt_map,
     optim->SetLossFunction(
         std::make_shared<nonlinear_optimizer::ExponentialLossFunction>(1.0,
                                                                        1.0));
+    optim->Solve(options, correspondences, &optimized_pose);
+
+    Pose pose_diff = optimized_pose.inverse() * last_optimized_pose;
+    if (pose_diff.translation().norm() < 1e-5 &&
+        Orientation(pose_diff.linear()).vec().norm() < 1e-5) {
+      break;
+    }
+    last_optimized_pose = optimized_pose;
+  }
+  std::cerr << "outer_iter: " << outer_iter << std::endl;
+
+  return optimized_pose;
+}
+
+Pose OptimizePoseAnalyticSimdThreads(
+    const NdtMap& ndt_map, const std::vector<Vec3>& local_points,
+    const Pose& initial_pose,
+    const std::shared_ptr<MultiThreadExecutor>& executor) {
+  CHECK_EXEC_TIME_FROM_HERE
+
+  Pose optimized_pose = initial_pose;
+  Pose last_optimized_pose = optimized_pose;
+  int outer_iter = 0;
+  for (; outer_iter < 10; ++outer_iter) {
+    const auto correspondences =
+        MatchPointCloud(ndt_map, local_points, optimized_pose);
+
+    std::unique_ptr<nonlinear_optimizer::mahalanobis_distance_minimizer::
+                        MahalanobisDistanceMinimizer>
+        optim = std::make_unique<
+            nonlinear_optimizer::mahalanobis_distance_minimizer::
+                MahalanobisDistanceMinimizerAnalyticSIMD>();
+    optim->SetLossFunction(
+        std::make_shared<nonlinear_optimizer::ExponentialLossFunction>(1.0,
+                                                                       1.0));
+    optim->SetMultiThreadExecutor(executor);
     optim->Solve(options, correspondences, &optimized_pose);
 
     Pose pose_diff = optimized_pose.inverse() * last_optimized_pose;

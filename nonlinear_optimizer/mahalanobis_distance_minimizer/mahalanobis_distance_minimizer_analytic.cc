@@ -92,8 +92,8 @@ bool MahalanobisDistanceMinimizerAnalytic::Solve(
   for (; iteration < options.max_iterations; ++iteration) {
     Mat6x6 hessian{Mat6x6::Zero()};
     Vec6 gradient{Vec6::Zero()};
-
     double cost = 0.0;
+
     if (multi_thread_executor_ == nullptr) {
       auto result = ComputeCostAndDerivatives(
           optimized_orientation.toRotationMatrix(), optimized_translation,

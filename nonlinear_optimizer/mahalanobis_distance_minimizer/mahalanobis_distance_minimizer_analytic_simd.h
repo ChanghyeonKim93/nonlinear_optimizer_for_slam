@@ -56,6 +56,13 @@ class MahalanobisDistanceMinimizerAnalyticSIMD
              Pose* pose) final;
 
  private:
+  PartialResult ComputeCostAndDerivatives(const Mat3x3& rotation,
+                                          const Vec3& translation,
+                                          const AlignedBuffer* aligned_buffer,
+                                          const size_t start_index,
+                                          const size_t end_index);
+  void AddHessianOnlyUpperTriangle(const Mat6x6& local_hessian,
+                                   Mat6x6* global_hessian);
   void ReflectHessian(Mat6x6* hessian);
 };
 
