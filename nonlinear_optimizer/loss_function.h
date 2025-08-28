@@ -4,6 +4,8 @@
 #include <cmath>
 #include <stdexcept>
 
+#include <simd_helper/simd_helper.h>
+
 namespace nonlinear_optimizer {
 
 class LossFunction {
@@ -11,6 +13,8 @@ class LossFunction {
   LossFunction() {}
 
   virtual void Evaluate(const double squared_residual, double* output) = 0;
+  virtual void Evaluate(const simd::Scalar& squared_residual,
+                        simd::Scalar* output) = 0;
 };
 
 class ExponentialLossFunction : public LossFunction {
@@ -21,8 +25,17 @@ class ExponentialLossFunction : public LossFunction {
     if (c2_ < 0.0) throw std::out_of_range("`c2_` should be positive number.");
   }
 
-  void Evaluate(const double squared_residual, double output[2]) final {
+  void Evaluate(const double squared_residual, double output[3]) final {
     const double exp_term = std::exp(-c2_ * squared_residual);
+    output[0] = c1_ - c1_ * exp_term;
+    output[1] = two_c1c2_ * exp_term;
+    output[2] = -2.0 * c2_ * output[1];
+  }
+
+  void Evaluate(const simd::Scalar& squared_residual,
+                simd::Scalar output[3]) final {
+    const simd::Scalar exp_term = simd::exp(-c2_ * squared_residual);
+    std::cerr << "exp_term: " << exp_term << std::endl;
     output[0] = c1_ - c1_ * exp_term;
     output[1] = two_c1c2_ * exp_term;
     output[2] = -2.0 * c2_ * output[1];
@@ -51,6 +64,12 @@ class HuberLossFunction : public LossFunction {
       output[0] = squared_residual;
       output[1] = 1.0;
     }
+  }
+
+  void Evaluate(const simd::Scalar& squared_residual,
+                simd::Scalar output[2]) final {
+    (void)squared_residual;
+    (void)output;
   }
 
  private:

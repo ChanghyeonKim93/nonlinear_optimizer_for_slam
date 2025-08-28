@@ -158,18 +158,22 @@ MahalanobisDistanceMinimizerAnalyticSIMD::ComputeCostAndDerivatives(
     simd::Scalar loss__(sq_r__);
     simd::Scalar weight__(1.0);
     if (loss_function_ != nullptr) {
-      float sq_r_buf[8];
-      sq_r__.StoreData(sq_r_buf);
-      float loss_buf[8];
-      float weight_buf[8];
-      for (size_t k = 0; k < simd::Scalar::data_stride; ++k) {
-        double loss_output[3] = {0.0, 0.0, 0.0};
-        loss_function_->Evaluate(sq_r_buf[k], loss_output);
-        loss_buf[k] = loss_output[0];
-        weight_buf[k] = loss_output[1];
-      }
-      loss__ = simd::Scalar(loss_buf);
-      weight__ = simd::Scalar(weight_buf);
+      // float sq_r_buf[8];
+      // sq_r__.StoreData(sq_r_buf);
+      // float loss_buf[8];
+      // float weight_buf[8];
+      // for (size_t k = 0; k < simd::Scalar::data_stride; ++k) {
+      //   double loss_output[3] = {0.0, 0.0, 0.0};
+      //   loss_function_->Evaluate(sq_r_buf[k], loss_output);
+      //   loss_buf[k] = loss_output[0];
+      //   weight_buf[k] = loss_output[1];
+      // }
+      // loss__ = simd::Scalar(loss_buf);
+      // weight__ = simd::Scalar(weight_buf);
+      simd::Scalar weight_temp[3];
+      loss_function_->Evaluate(sq_r__, weight_temp);
+      loss__ = weight_temp[0];
+      weight__ = weight_temp[1];
     }
 
     // g(i) += (J(0,i)*r(0) + J(1,i)*r(1) + J(2,i)*r(2))
