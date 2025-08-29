@@ -86,10 +86,8 @@ bool MahalanobisDistanceMinimizerAnalyticSIMD::Solve(
     // Damping hessian
     for (int k = 0; k < 6; k++) hessian(k, k) *= 1.0 + lambda;
 
-    // Compute the step
+    // Update pose
     const Vec6 update_step = hessian.ldlt().solve(-gradient);
-
-    // Update the pose
     const Vec3 delta_t = update_step.block<3, 1>(0, 0);
     const Vec3 delta_R = update_step.block<3, 1>(3, 0);
     optimized_translation += delta_t;

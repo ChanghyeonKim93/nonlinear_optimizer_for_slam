@@ -16,6 +16,7 @@ struct PartialResult {
   Mat6x6 hessian{Mat6x6::Zero()};
   double cost{0.0};
 };
+
 class MahalanobisDistanceMinimizer {
  public:
   MahalanobisDistanceMinimizer() {}
@@ -41,22 +42,17 @@ class MahalanobisDistanceMinimizer {
     const double theta = w.norm();
     if (theta < 1e-6) {
       orientation.w() = 1.0;
-      orientation.x() = 0.5 * w.x();
-      orientation.y() = 0.5 * w.y();
-      orientation.z() = 0.5 * w.z();
+      orientation.vec() = 0.5 * w;
     } else {
       const double half_theta = theta * 0.5;
       const double sin_half_theta_divided_theta = std::sin(half_theta) / theta;
       orientation.w() = std::cos(half_theta);
-      orientation.x() = sin_half_theta_divided_theta * w.x();
-      orientation.y() = sin_half_theta_divided_theta * w.y();
-      orientation.z() = sin_half_theta_divided_theta * w.z();
+      orientation.vec() = sin_half_theta_divided_theta * w;
     }
     return orientation;
   }
 
   std::shared_ptr<LossFunction> loss_function_{nullptr};
-
   std::shared_ptr<MultiThreadExecutor> multi_thread_executor_{nullptr};
 };
 
