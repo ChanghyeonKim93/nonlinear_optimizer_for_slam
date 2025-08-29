@@ -27,8 +27,6 @@ class ExponentialLossFunction : public LossFunction {
 
   void Evaluate(const double squared_residual, double output[3]) final {
     const double exp_term = std::exp(-c2_ * squared_residual);
-    // std::cerr << "squared_residual: " << squared_residual << std::endl;
-    // std::cerr << "exp_term: " << exp_term << std::endl;
     output[0] = c1_ - c1_ * exp_term;
     output[1] = two_c1c2_ * exp_term;
     output[2] = -2.0 * c2_ * output[1];
@@ -37,8 +35,6 @@ class ExponentialLossFunction : public LossFunction {
   void Evaluate(const simd::Scalar& squared_residual,
                 simd::Scalar output[3]) final {
     const simd::Scalar exp_term = simd::exp((-c2_) * squared_residual);
-    // std::cerr << "squared_residual: " << squared_residual << std::endl;
-    // std::cerr << "exp_term: " << exp_term << std::endl;
     output[0] = c1_ - c1_ * exp_term;
     output[1] = two_c1c2_ * exp_term;
     output[2] = (-2.0 * c2_) * output[1];
