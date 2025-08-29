@@ -48,10 +48,12 @@ bool MahalanobisDistanceMinimizerAnalyticSIMD::Solve(
     Vec6 gradient{Vec6::Zero()};
     double cost = 0.0;
 
+    const size_t stride = simd::Scalar::data_stride;
+    const int num_stride = correspondences.size() / stride;
     if (multi_thread_executor_ == nullptr) {
       auto result = ComputeCostAndDerivatives(
           optimized_orientation.toRotationMatrix(), optimized_translation,
-          &abuf, 0, correspondences.size());
+          &abuf, 0, num_stride * stride);
       gradient = result.gradient;
       hessian = result.hessian;
       cost = result.cost;
@@ -59,12 +61,7 @@ bool MahalanobisDistanceMinimizerAnalyticSIMD::Solve(
       const auto data_stride = simd::Scalar::data_stride;  // 8
       const int num_threads =
           multi_thread_executor_->GetNumOfTotalThreads();  // 4
-      const int num_stride_batches =
-          std::floor(correspondences.size() / data_stride);  // 124
-      const int num_batch =
-          std::floor(num_stride_batches / num_threads) * data_stride;
-      const int num_correspondences = num_stride_batches * data_stride;
-
+      const int num_batch = std::floor(num_stride / num_threads) * data_stride;
       std::vector<std::future<PartialResult>> partial_results;
       for (int i = 0; i < num_threads; ++i) {
         partial_results.emplace_back(multi_thread_executor_->Execute(
@@ -72,7 +69,8 @@ bool MahalanobisDistanceMinimizerAnalyticSIMD::Solve(
                 ComputeCostAndDerivatives,
             this, optimized_orientation.toRotationMatrix(),
             optimized_translation, &abuf, i * num_batch,
-            std::min((i + 1) * num_batch, num_correspondences)));
+            std::min((i + 1) * num_batch,
+                     static_cast<int>(num_stride * data_stride))));
       }
       for (auto& future : partial_results) {
         const auto& result = future.get();
@@ -129,9 +127,8 @@ MahalanobisDistanceMinimizerAnalyticSIMD::ComputeCostAndDerivatives(
   simd::Vector<6> gradient__(Eigen::Matrix<float, 6, 1>::Zero());
   simd::Matrix<6, 6> hessian__(Eigen::Matrix<float, 6, 6>::Zero());
   simd::Scalar cost__(0.0);
-  const size_t stride = simd::Scalar::data_stride;
   for (size_t point_idx = start_index; point_idx < end_index;
-       point_idx += stride) {
+       point_idx += simd::Scalar::data_stride) {
     simd::Vector<3> p__(
         {abuf->x + point_idx, abuf->y + point_idx, abuf->z + point_idx});
     simd::Vector<3> mu__(
@@ -158,22 +155,10 @@ MahalanobisDistanceMinimizerAnalyticSIMD::ComputeCostAndDerivatives(
     simd::Scalar loss__(sq_r__);
     simd::Scalar weight__(1.0);
     if (loss_function_ != nullptr) {
-      // float sq_r_buf[8];
-      // sq_r__.StoreData(sq_r_buf);
-      // float loss_buf[8];
-      // float weight_buf[8];
-      // for (size_t k = 0; k < simd::Scalar::data_stride; ++k) {
-      //   double loss_output[3] = {0.0, 0.0, 0.0};
-      //   loss_function_->Evaluate(sq_r_buf[k], loss_output);
-      //   loss_buf[k] = loss_output[0];
-      //   weight_buf[k] = loss_output[1];
-      // }
-      // loss__ = simd::Scalar(loss_buf);
-      // weight__ = simd::Scalar(weight_buf);
-      simd::Scalar weight_temp[3];
-      loss_function_->Evaluate(sq_r__, weight_temp);
-      loss__ = weight_temp[0];
-      weight__ = weight_temp[1];
+      simd::Scalar loss_output__[3];
+      loss_function_->Evaluate(sq_r__, loss_output__);
+      loss__ = loss_output__[0];
+      weight__ = loss_output__[1];
     }
 
     // g(i) += (J(0,i)*r(0) + J(1,i)*r(1) + J(2,i)*r(2))
@@ -207,6 +192,7 @@ MahalanobisDistanceMinimizerAnalyticSIMD::ComputeCostAndDerivatives(
         partial_result.hessian(ii, jj) += buf[kk];
     }
   }
+
   return partial_result;
 }
 

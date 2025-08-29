@@ -114,9 +114,10 @@ int main(int, char**) {
   std::cerr << "Start OptimizePoseAnalyticSIMD" << std::endl;
   const auto opt_pose_analytic_simd =
       OptimizePoseAnalyticSimd(ndt_map, local_points, initial_pose);
-  std::cerr << "Start OptimizePoseAnalyticSIMDThreads" << std::endl;
-  const auto opt_pose_analytic_simd_threads = OptimizePoseAnalyticSimdThreads(
-      ndt_map, local_points, initial_pose, executor);
+  // std::cerr << "Start OptimizePoseAnalyticSIMDThreads" << std::endl;
+  // const auto opt_pose_analytic_simd_threads =
+  // OptimizePoseAnalyticSimdThreads(
+  //     ndt_map, local_points, initial_pose, executor);
 
   std::cerr << "Pose (ceres redundant): "
             << opt_pose_ceres_redundant.translation().transpose() << " "
@@ -151,12 +152,13 @@ int main(int, char**) {
                    .coeffs()
                    .transpose()
             << std::endl;
-  std::cerr << "Pose (analytic simd threads): "
-            << opt_pose_analytic_simd_threads.translation().transpose() << " "
-            << Eigen::Quaterniond(opt_pose_analytic_simd_threads.linear())
-                   .coeffs()
-                   .transpose()
-            << std::endl;
+  // std::cerr << "Pose (analytic simd threads): "
+  //           << opt_pose_analytic_simd_threads.translation().transpose() << "
+  //           "
+  //           << Eigen::Quaterniond(opt_pose_analytic_simd_threads.linear())
+  //                  .coeffs()
+  //                  .transpose()
+  //           << std::endl;
   std::cerr << "True pose: " << true_pose.translation().transpose() << " "
             << Eigen::Quaterniond(true_pose.linear()).coeffs().transpose()
             << std::endl;
@@ -595,7 +597,7 @@ Pose OptimizePoseAnalyticSimdThreads(
     optim->SetLossFunction(
         std::make_shared<nonlinear_optimizer::ExponentialLossFunction>(1.0,
                                                                        1.0));
-    optim->SetMultiThreadExecutor(executor);
+    // optim->SetMultiThreadExecutor(executor);
     optim->Solve(options, correspondences, &optimized_pose);
 
     Pose pose_diff = optimized_pose.inverse() * last_optimized_pose;
