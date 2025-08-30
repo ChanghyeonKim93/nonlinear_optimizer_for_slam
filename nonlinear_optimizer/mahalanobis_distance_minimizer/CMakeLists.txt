@@ -14,9 +14,12 @@ set(UTILITY_SRC ${CMAKE_SOURCE_DIR}/nonlinear_optimizer/time_checker.cc)
 # tests
 add_executable(
   ${PROJECT_NAME}_tests_simple_optimization_test
-  tests/simple_optimization_test.cc mahalanobis_distance_minimizer_ceres.cc
+  tests/simple_optimization_test.cc
+  mahalanobis_distance_minimizer.cc
+  mahalanobis_distance_minimizer_ceres.cc
   mahalanobis_distance_minimizer_analytic.cc
-  mahalanobis_distance_minimizer_analytic_simd.cc ${UTILITY_SRC})
+  mahalanobis_distance_minimizer_analytic_simd.cc
+  ${UTILITY_SRC})
 target_include_directories(
   ${PROJECT_NAME}_tests_simple_optimization_test
   PUBLIC ${CMAKE_SOURCE_DIR} # Include the parent CMake file's directory
@@ -27,6 +30,7 @@ target_link_libraries(${PROJECT_NAME}_tests_simple_optimization_test
 add_executable(
   ${PROJECT_NAME}_3dof_6dof_comparison_test
   tests/3dof_6dof_comparison_test.cc
+  mahalanobis_distance_minimizer.cc
   mahalanobis_distance_minimizer_ceres.cc
   mahalanobis_distance_minimizer_analytic.cc
   mahalanobis_distance_minimizer_analytic_3dof.cc
@@ -45,6 +49,7 @@ if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64")
   add_executable(
     ${PROJECT_NAME}_tests_simd_implementation_comparison_test
     tests/simd_implementation_comparison_test.cc
+    mahalanobis_distance_minimizer.cc
     mahalanobis_distance_minimizer_ceres.cc
     mahalanobis_distance_minimizer_analytic.cc
     mahalanobis_distance_minimizer_analytic_simd.cc

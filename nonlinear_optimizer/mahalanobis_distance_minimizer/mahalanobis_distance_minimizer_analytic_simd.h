@@ -31,6 +31,7 @@ struct AlignedBuffer {
     my = simd::GetAlignedMemory<float>(num_data);
     mz = simd::GetAlignedMemory<float>(num_data);
   }
+
   ~AlignedBuffer() {
     for (int row = 0; row < 3; ++row)
       for (int col = 0; col < 3; ++col)

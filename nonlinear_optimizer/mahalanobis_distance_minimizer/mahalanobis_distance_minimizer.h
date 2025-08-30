@@ -19,39 +19,24 @@ struct PartialResult {
 
 class MahalanobisDistanceMinimizer {
  public:
-  MahalanobisDistanceMinimizer() {}
+  MahalanobisDistanceMinimizer();
 
-  ~MahalanobisDistanceMinimizer() {}
+  ~MahalanobisDistanceMinimizer();
 
   void SetMultiThreadExecutor(
-      const std::shared_ptr<MultiThreadExecutor>& multi_thread_executor) {
-    multi_thread_executor_ = multi_thread_executor;
-  }
+      const std::shared_ptr<MultiThreadExecutor>& multi_thread_executor);
 
-  void SetLossFunction(const std::shared_ptr<LossFunction>& loss_function) {
-    loss_function_ = loss_function;
-  }
+  void SetLossFunction(const std::shared_ptr<LossFunction>& loss_function);
 
   virtual bool Solve(const Options& options,
                      const std::vector<Correspondence>& correspondences,
                      Pose* pose) = 0;
 
  protected:
-  Orientation ComputeQuaternion(const Vec3& w) {
-    Orientation orientation{Orientation::Identity()};
-    const double theta = w.norm();
-    if (theta < 1e-6) {
-      orientation.w() = 1.0;
-      orientation.vec() = 0.5 * w;
-    } else {
-      const double half_theta = theta * 0.5;
-      const double sin_half_theta_divided_theta = std::sin(half_theta) / theta;
-      orientation.w() = std::cos(half_theta);
-      orientation.vec() = sin_half_theta_divided_theta * w;
-    }
-    return orientation;
-  }
+  Orientation ComputeQuaternion(const Vec3& w);
 
+  std::optional<Eigen::Vector3d> translation_prior_constraint_{std::nullopt};
+  std::optional<Eigen::Quaterniond> rotation_prior_constraint_{std::nullopt};
   std::shared_ptr<LossFunction> loss_function_{nullptr};
   std::shared_ptr<MultiThreadExecutor> multi_thread_executor_{nullptr};
 };
