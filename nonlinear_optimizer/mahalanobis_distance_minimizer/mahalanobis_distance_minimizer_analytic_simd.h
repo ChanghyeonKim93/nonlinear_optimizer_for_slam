@@ -12,37 +12,10 @@
 namespace nonlinear_optimizer {
 namespace mahalanobis_distance_minimizer {
 
-struct AlignedBuffer {
-  float* sqrt_info[3][3] = {nullptr};
-  float* x = {nullptr};
-  float* y = {nullptr};
-  float* z = {nullptr};
-  float* mx = {nullptr};
-  float* my = {nullptr};
-  float* mz = {nullptr};
-  AlignedBuffer(const size_t num_data) {
-    for (int row = 0; row < 3; ++row)
-      for (int col = 0; col < 3; ++col)
-        sqrt_info[row][col] = simd::GetAlignedMemory<float>(num_data);
-    x = simd::GetAlignedMemory<float>(num_data);
-    y = simd::GetAlignedMemory<float>(num_data);
-    z = simd::GetAlignedMemory<float>(num_data);
-    mx = simd::GetAlignedMemory<float>(num_data);
-    my = simd::GetAlignedMemory<float>(num_data);
-    mz = simd::GetAlignedMemory<float>(num_data);
-  }
-
-  ~AlignedBuffer() {
-    for (int row = 0; row < 3; ++row)
-      for (int col = 0; col < 3; ++col)
-        simd::FreeAlignedMemory<float>(sqrt_info[row][col]);
-    simd::FreeAlignedMemory<float>(x);
-    simd::FreeAlignedMemory<float>(y);
-    simd::FreeAlignedMemory<float>(z);
-    simd::FreeAlignedMemory<float>(mx);
-    simd::FreeAlignedMemory<float>(my);
-    simd::FreeAlignedMemory<float>(mz);
-  }
+struct SOAData {
+  simd::SOAContainer<3, 1> points;
+  simd::SOAContainer<3, 1> means;
+  simd::SOAContainer<3, 3> sqrt_infos;
 };
 
 class MahalanobisDistanceMinimizerAnalyticSIMD
@@ -59,7 +32,7 @@ class MahalanobisDistanceMinimizerAnalyticSIMD
  private:
   PartialResult ComputeCostAndDerivatives(const Mat3x3& rotation,
                                           const Vec3& translation,
-                                          const AlignedBuffer* aligned_buffer,
+                                          const SOAData* soa_data,
                                           const size_t start_index,
                                           const size_t end_index);
   void AddHessianOnlyUpperTriangle(const Mat6x6& local_hessian,
