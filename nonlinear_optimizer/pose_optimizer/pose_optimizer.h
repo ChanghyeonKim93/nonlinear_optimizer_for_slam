@@ -9,14 +9,22 @@
 
 namespace pose_optimizer {
 
+enum class SolverType { kGaussNewton = 0, kLevenbergMarquardt };
+
 struct Parameters {
   int max_iteration = 100;
+  struct {
+    double reprojection_error = 1.0;
+    double imu_preintegration = 1.0;
+    double translation_prior = 1.0;
+    double rotation_prior = 1.0;
+  } cost_weight;
 };
 
-struct LocalResult {
+struct Evaluation {
+  double cost = 0.0;
   Mat6x6 H = Mat6x6::Zero();
   Vec6 g = Vec6::Zero();
-  double cost = 0.0;
 };
 
 class PoseOptimizer {
@@ -28,14 +36,26 @@ class PoseOptimizer {
   bool Solve(Pose* pose);
 
  private:
-  LocalResult ComputeReprojectionError(const Pose& pose,
-                                       const bool compute_jacobians);
-  LocalResult ComputeImuPreintegrationError(const Pose& pose,
-                                            const bool compute_jacobians);
-  void ApplyLocalResult(const LocalResult& local_result, Mat6x6* H, Vec6* g,
-                        double* cost);
+  Evaluation Evaluate(const Vec3& translation, const Orientation& orientation,
+                      const bool compute_jacobians = true);
+  Evaluation EvaluateReprojectionErrorCost(const Vec3& translation,
+                                           const Orientation& orientation,
+                                           const bool compute_jacobians = true);
+  Evaluation EvaluateImuPreintegrationCost(const Vec3& translation,
+                                           const Orientation& orientation,
+                                           const bool compute_jacobians = true);
+  Evaluation EvaluateTranslationPriorCost(const Vec3& translation,
+                                          const bool compute_jacobians = true);
+  Evaluation EvaluateRotationPriorCost(const Orientation& orientation,
+                                       const bool compute_jacobians = true);
+  void AugmentEvaluation(const Evaluation& local_evaluation,
+                         const double cost_weight,
+                         Evaluation* total_evaluation);
+  void ReflectHessian(Mat6x6* H);
+  Orientation GetQuaternion(const Vec3& rotation_vector);
 
   const Parameters parameters_;
+  SolverType solver_type_{SolverType::kLevenbergMarquardt};
 };
 
 }  // namespace pose_optimizer

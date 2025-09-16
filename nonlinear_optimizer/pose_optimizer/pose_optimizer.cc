@@ -7,114 +7,182 @@ PoseOptimizer::PoseOptimizer() {}
 PoseOptimizer::~PoseOptimizer() {}
 
 bool PoseOptimizer::Solve(Pose* pose) {
-  constexpr double kMaxLambda = 2.0;
-  constexpr double kMinLambda = 0.1;
+  constexpr double kMaxMu = 2.0;
+  constexpr double kMinMu = 0.1;
+  constexpr double kMaxTrRadius = 1e16;
+  constexpr double kMinTrRadius = 1e-16;
 
   if (pose == nullptr) return false;
 
-  Pose optimized_pose = *pose;
+  Vec3 translation = pose->translation();
+  Eigen::Quaterniond orientation(pose->rotation());
 
-  double lambda = 1e-3;
+  Evaluation previous_evaluation;
+  previous_evaluation.cost = std::numeric_limits<double>::max();
 
-  Mat6x6 H_prev = Mat6x6::Zero();
-  Vec6 g_prev = Vec6::Zero();
-  double cost_prev = 0.0;
-
+  double tr_radius = 1.0;
+  double mu = 1e-3;
   bool is_previous_step_valid = true;
+  int iteration = 0;
+  for (; iteration < parameters_.max_iteration; ++iteration) {
+    // Evaluate cost functions and Jacobians
+    Evaluation evaluation;
+    if (solver_type_ == SolverType::kGaussNewton || is_previous_step_valid)
+      evaluation = Evaluate(translation, orientation, true);
+    else
+      evaluation = previous_evaluation;
 
-  double previous_cost = std::numeric_limits<double>::max();
-  for (int iteration = 0; iteration < parameters_.max_iteration; ++iteration) {
-    double cost = 0.0;
-    Mat6x6 H{Mat6x6::Zero()};
-    Vec6 g{Vec6::Zero()};
-
-    if (is_previous_step_valid) {
-      // Compute the residuals and Jacobians here.
-      const auto& reproj_error_result =
-          ComputeReprojectionError(optimized_pose, false);
-      ApplyLocalResult(reproj_error_result, &H, &g, &cost);
-
-      const auto& imu_preint_error_result =
-          ComputeImuPreintegrationError(optimized_pose, false);
-      ApplyLocalResult(imu_preint_error_result, &H, &g, &cost);
-    } else {
-      // Reuse the previous Hessian and gradient to save computation.
-      H = H_prev;
-      g = g_prev;
-      cost = cost_prev;
+    // Compute damping ratio satisfying the trust region radius constraint
+    const auto& H = evaluation.H;
+    const auto& g = evaluation.g;
+    const Mat6x6 damped_H = H + mu * H.diagonal();
+    Vec6 dx = -damped_H.ldlt().solve(g);
+    const double step_norm = dx.norm();
+    if (step_norm > tr_radius) {
+      const double scale_factor = tr_radius / step_norm;
+      dx *= scale_factor;
     }
+    const Vec3 updated_translation = translation + dx.block<3, 1>(0, 0);
+    const Orientation updated_orientation =
+        orientation * GetQuaternion(dx.block<3, 1>(0, 3));
 
-    // Compute update step
-    Vec6 dx = -(H + lambda * H.diagonal()).ldlt().solve(g);
+    if (solver_type_ == SolverType::kGaussNewton) {
+      is_previous_step_valid = true;
+      translation = updated_translation;
+      orientation = updated_orientation;
+    } else if (solver_type_ == SolverType::kLevenbergMarquardt) {
+      // Compute new cost
+      const Evaluation new_evaluation =
+          Evaluate(updated_translation, updated_orientation, false);
 
-    // Compute new cost
-    const Pose pose_after_update = optimized_pose;
-    const auto& new_reproj_err_result =
-        ComputeReprojectionError(pose_after_update, true);
-    const auto& new_imu_preint_err_result =
-        ComputeImuPreintegrationError(pose_after_update, true);
-
-    const double cost_after_update =
-        new_reproj_err_result.cost + new_imu_preint_err_result.cost;
-    const double real_cost_change = cost - cost_after_update;
-
-    // Check whether the optimization step decreases the cost function
-    const double estimated_cost_change = -0.5 * dx.dot(lambda * dx - g);
-
-    const double rho = real_cost_change / estimated_cost_change;
-    if (rho > 0 && real_cost_change > 0 && std::isfinite(real_cost_change)) {
-      // optimized_pose = optimized_pose + dx;
-      previous_cost = cost + 0.5 * dx.dot(H * dx);
-      lambda = std::max(lambda * 0.5, kMinLambda);
-    } else {
-      lambda = std::min(lambda * 2.0, kMaxLambda);
+      const double real_cost_change = new_evaluation.cost - evaluation.cost;
+      const double estimated_cost_change = dx.dot(0.5 * H * dx + g);
+      const double rho = real_cost_change / estimated_cost_change;
+      if (real_cost_change < 0.0 && rho > 0.0) {
+        // Accept the step
+        is_previous_step_valid = true;
+        translation = updated_translation;
+        orientation = updated_orientation;
+        if (rho > 0.75) {
+          tr_radius = std::max(tr_radius, 3.0 * step_norm);
+          mu *= 0.5;
+        } else if (rho > 0.25) {
+          tr_radius = std::max(tr_radius, 1.5 * step_norm);
+          mu *= 0.7;
+        } else {
+          mu *= 0.9;
+        }
+        mu = std::clamp(mu, kMinMu, kMaxMu);
+        tr_radius = std::clamp(tr_radius, kMinTrRadius, kMaxTrRadius);
+      } else {
+        // Reject the step
+        is_previous_step_valid = false;
+        tr_radius *= 0.25;
+        mu *= 2.0;
+        mu = std::clamp(mu, kMinMu, kMaxMu);
+        tr_radius = std::clamp(tr_radius, kMinTrRadius, kMaxTrRadius);
+        continue;
+      }
     }
+    // Check convergence
+    if (dx.size() < 1e-7) break;
+    if (std::abs(previous_evaluation.cost - evaluation.cost) < 1e-7) break;
+    if (evaluation.g.norm() < 1e-7) break;
 
     // Update the previous step information
-    H_prev = H;
-    g_prev = g;
-    cost_prev = cost;
-    is_previous_step_valid = true;
+    previous_evaluation = evaluation;
   }
+
+  pose->translation() = translation;
+  pose->linear() = orientation.toRotationMatrix();
 
   return true;
 }
 
-LocalResult PoseOptimizer::ComputeReprojectionError(const Pose& pose,
-                                                    bool compute_jacobians) {
-  LocalResult local_result;
-  (void)pose;
-  if (compute_jacobians) {
-    // Compute Jacobians here.
-  } else {
-    // Only compute residuals here.
-  }
-  return local_result;
+Evaluation PoseOptimizer::Evaluate(const Vec3& translation,
+                                   const Orientation& orientation,
+                                   const bool compute_jacobians) {
+  const auto& cost_weight = parameters_.cost_weight;
+  Evaluation eval;
+  AugmentEvaluation(EvaluateReprojectionErrorCost(translation, orientation,
+                                                  compute_jacobians),
+                    cost_weight.reprojection_error, &eval);
+  AugmentEvaluation(EvaluateImuPreintegrationCost(translation, orientation,
+                                                  compute_jacobians),
+                    cost_weight.imu_preintegration, &eval);
+  AugmentEvaluation(
+      EvaluateTranslationPriorCost(translation, compute_jacobians),
+      cost_weight.translation_prior, &eval);
+  AugmentEvaluation(EvaluateRotationPriorCost(orientation, compute_jacobians),
+                    cost_weight.rotation_prior, &eval);
+  return eval;
 }
 
-LocalResult PoseOptimizer::ComputeImuPreintegrationError(
-    const Pose& pose, bool compute_jacobians) {
-  LocalResult local_result;
-  (void)pose;
+Evaluation PoseOptimizer::EvaluateReprojectionErrorCost(
+    const Vec3& translation, const Orientation& orientation,
+    bool compute_jacobians) {
+  Evaluation eval;
+  (void)translation;
+  (void)orientation;
+  eval.cost;
   if (compute_jacobians) {
-    // Compute Jacobians here.
-  } else {
-    // Only compute residuals here.
+    eval.H;
+    eval.g;
+    ReflectHessian(&eval.H);
   }
-  return local_result;
+  return eval;
 }
 
-void PoseOptimizer::ApplyLocalResult(const LocalResult& local_result, Mat6x6* H,
-                                     Vec6* g, double* cost) {
-  if (H != nullptr) {
-    *H += local_result.H;
+Evaluation PoseOptimizer::EvaluateImuPreintegrationCost(
+    const Vec3& translation, const Orientation& orientation,
+    bool compute_jacobians) {
+  Evaluation eval;
+  (void)translation;
+  (void)orientation;
+  eval.cost;
+  if (compute_jacobians) {
+    eval.H;
+    eval.g;
   }
-  if (g != nullptr) {
-    *g += local_result.g;
+  return eval;
+}
+
+Evaluation EvaluateTranslationPriorCost(const Vec3& translation,
+                                        const bool compute_jacobians) {
+  Evaluation eval;
+  (void)translation;
+  eval.cost;
+  if (compute_jacobians) {
+    eval.H;
+    eval.g;
   }
-  if (cost != nullptr) {
-    *cost += local_result.cost;
+  return eval;
+}
+
+Evaluation EvaluateRotationPriorCost(const Orientation& orientation,
+                                     const bool compute_jacobians) {
+  Evaluation eval;
+  (void)orientation;
+  eval.cost;
+  if (compute_jacobians) {
+    eval.H;
+    eval.g;
   }
+  return eval;
+}
+
+void PoseOptimizer::AugmentEvaluation(const Evaluation& evaluation,
+                                      const double cost_weight,
+                                      Evaluation* total_evaluation) {
+  total_evaluation->H += cost_weight * evaluation.H;
+  total_evaluation->g += cost_weight * evaluation.g;
+  total_evaluation->cost += cost_weight * evaluation.cost;
+}
+
+Orientation PoseOptimizer::GetQuaternion(const Vec3& rotation_vector) {
+  Orientation orientation;
+  (void)rotation_vector;
+  return orientation;
 }
 
 }  // namespace pose_optimizer

@@ -14,6 +14,7 @@ using Vec2 = Eigen::Vector2d;
 using Vec3 = Eigen::Vector3d;
 using Vec6 = Eigen::Matrix<double, 6, 1>;
 using Pose = Eigen::Isometry3d;
+using Orientation = Eigen::Quaterniond;
 
 }  // namespace pose_optimizer
 
